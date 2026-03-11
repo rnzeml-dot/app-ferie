@@ -585,8 +585,8 @@ async function spGet(endpoint) {
 
 async function spGetAll(lista, filtro='', select='') {
   let url = `web/lists/getbytitle('${lista}')/items?$top=5000`;
-  if (filtro) url += `&$filter=${encodeURIComponent(filtro)}`;
   if (select) url += `&$select=${encodeURIComponent(select)}`;
+  if (filtro) url += `&$filter=${encodeURIComponent(filtro)}`;
   const d = await spGet(url);
   return d.value || [];
 }
@@ -676,7 +676,7 @@ async function salvaSetup() {
 async function caricaTeam() {
   apriModal('loginOverlay');
   try {
-    teamData = await spGetAll(LIST_CONFIG);
+    teamData = await spGetAll(LIST_CONFIG, '', 'Id,Title,Ruolo,Responsabile,Caporeparto,PasswordHash,PasswordTemp');
     const sel = document.getElementById('loginNome');
     sel.innerHTML = '<option value="">— seleziona —</option>';
     teamData.sort((a,b)=>a.Title.localeCompare(b.Title))
@@ -762,7 +762,7 @@ async function caricaFerie() {
   ferieLocali.clear();
   try {
     const items = await spGetAll(LIST_FERIE,
-      `Dipendente eq '${utenteCorrente.Title}' and Anno eq ${anno}`);
+      `Dipendente eq '${utenteCorrente.Title}' and Anno eq ${anno}`, 'Id,Giorno');
     items.forEach(i => ferieLocali.add(i.Giorno));
   } catch(e) { console.error('Carica ferie:', e); }
 }
@@ -954,7 +954,7 @@ function disegnaCal() {
 async function caricaStatiRichieste(anno) {
   try {
     const reqs = await spGetAll(LIST_RICHIESTE,
-      `Dipendente eq '${utenteCorrente.Title}' and Anno eq ${anno}`);
+      `Dipendente eq '${utenteCorrente.Title}' and Anno eq ${anno}`, 'Id,Stato,Giorni');
     reqs.forEach(req => {
       if (req.Stato === 'in_attesa' || req.Stato === 'rifiutata') {
         const giorni = JSON.parse(req.Giorni || '[]');
@@ -1111,7 +1111,7 @@ async function apriRichieste() {
       m.Responsabile === utenteCorrente.Title || m.Caporeparto === utenteCorrente.Title);
     const nomi = miei.map(m=>`Dipendente eq '${m.Title}'`).join(' or ');
     if (!nomi) { body.innerHTML='<p style="padding:16px;color:var(--debole)">Nessun membro nel team.</p>'; return; }
-    const reqs = await spGetAll(LIST_RICHIESTE, `(${nomi}) and Stato eq 'in_attesa'`);
+    const reqs = await spGetAll(LIST_RICHIESTE, `(${nomi}) and Stato eq 'in_attesa'`, 'Id,Dipendente,Giorni,NoteRisorsa,Stato,Anno');
     if (!reqs.length) { body.innerHTML='<p style="padding:16px;color:var(--debole)">✓ Nessuna richiesta pendente.</p>'; return; }
 
     body.innerHTML = '';
@@ -1189,7 +1189,8 @@ async function confermaRifiuto() {
 async function controllaNotifiche() {
   try {
     const reqs = await spGetAll(LIST_RICHIESTE,
-      `Dipendente eq '${utenteCorrente.Title}' and Letta eq false and Stato ne 'in_attesa' and Stato ne 'bozza'`);
+      `Dipendente eq '${utenteCorrente.Title}' and Letta eq false and Stato ne 'in_attesa' and Stato ne 'bozza'`,
+      'Id,Stato,DataRisposta,MotivazioneRifiuto');
     if (!reqs.length) return;
 
     const panel = document.getElementById('sideNotif');
@@ -1212,7 +1213,7 @@ async function controllaNotifiche() {
 
     // Badge attesa
     const pendenti = await spGetAll(LIST_RICHIESTE,
-      `Dipendente eq '${utenteCorrente.Title}' and Stato eq 'in_attesa'`);
+      `Dipendente eq '${utenteCorrente.Title}' and Stato eq 'in_attesa'`, 'Id');
     if (pendenti.length) {
       document.getElementById('statAttesaRow').style.display='flex';
       document.getElementById('statAttesa').textContent = pendenti.length;
@@ -1237,7 +1238,7 @@ async function apriVistaTeam() {
   const ferieTeam = {};
   await Promise.all(miei.map(async (m, i) => {
     const items = await spGetAll(LIST_FERIE,
-      `Dipendente eq '${m.Title}' and Anno eq ${anno}`);
+      `Dipendente eq '${m.Title}' and Anno eq ${anno}`, 'Id,Giorno');
     ferieTeam[m.Title] = { ferie: new Set(items.map(x=>x.Giorno)), colore: PALETTE[i%PALETTE.length] };
   }));
 
