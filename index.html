@@ -244,21 +244,12 @@
 <!-- ══ SETUP SCREEN (prima configurazione) ════════════════════════════════ -->
 <div class="setup-screen hidden" id="setupScreen">
   <div class="setup-card">
-    <h1>⚙️ Configurazione GitHub</h1>
-    <p>Inserisci il nome utente GitHub e il Personal Access Token con permessi <code>repo</code>.<br>
-    Questi dati vengono salvati solo nel tuo browser.</p>
+    <h1>⚙️ Configurazione iniziale</h1>
+    <p>Inserisci il codice di attivazione fornito dall'amministratore. Questa operazione va eseguita una sola volta su questo PC.</p>
     <div class="field" style="margin-bottom:14px">
-      <label>Nome utente GitHub</label>
-      <input type="text" id="setupOwner" placeholder="es: mario-rossi" />
-    </div>
-    <div class="field" style="margin-bottom:14px">
-      <label>Nome repository</label>
-      <input type="text" id="setupRepo" placeholder="es: app-ferie" value="app-ferie" />
-    </div>
-    <div class="field" style="margin-bottom:14px">
-      <label>Personal Access Token (PAT)</label>
+      <label>Codice di attivazione</label>
       <div class="pwd-wrap">
-        <input type="password" id="setupToken" placeholder="ghp_xxxxxxxxxxxx" />
+        <input type="password" id="setupToken" placeholder="Inserisci il codice…" />
         <button class="pwd-toggle" onclick="togglePwd('setupToken',this)">👁</button>
       </div>
     </div>
@@ -620,19 +611,25 @@ async function init() {
 }
 
 async function salvaSetup() {
-  const owner = document.getElementById('setupOwner').value.trim();
-  const repo  = document.getElementById('setupRepo').value.trim() || 'app-ferie';
-  const token = document.getElementById('setupToken').value.trim();
-  const msg   = document.getElementById('setupMsg');
+  const codice = document.getElementById('setupToken').value.trim();
+  const msg    = document.getElementById('setupMsg');
   msg.textContent = '';
-  if (!owner || !token) { msg.textContent = 'Compila tutti i campi.'; return; }
+  if (!codice) { msg.textContent = 'Inserisci il codice di attivazione.'; return; }
   msg.textContent = 'Verifica in corso…';
 
-  // Test connessione
-  GH_OWNER = owner; GH_REPO = repo; GH_TOKEN = token;
   try {
+    // Il codice è base64 di "owner:repo:token"
+    const decoded = atob(codice);
+    const parts   = decoded.split(':');
+    if (parts.length < 3) throw new Error('Codice non valido');
+    const owner = parts[0];
+    const repo  = parts[1];
+    const token = parts.slice(2).join(':'); // il token può contenere ":"
+
+    GH_OWNER = owner; GH_REPO = repo; GH_TOKEN = token;
     const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: ghHeaders() });
-    if (!r.ok) throw new Error(`Repository non trovato (${r.status})`);
+    if (!r.ok) throw new Error(`Codice non valido o scaduto (${r.status})`);
+
     localStorage.setItem('gh_owner', owner);
     localStorage.setItem('gh_repo',  repo);
     localStorage.setItem('gh_token', token);
@@ -647,30 +644,12 @@ async function salvaSetup() {
 async function caricaTeam() {
   apriModal('loginOverlay');
   try {
-    // Carica o inizializza config
-    const defaultConfig = [
-      {"id":1,"Title":"RAED REFAT SAYED SHAALAN","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":2,"Title":"DARIO MANGANO","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":3,"Title":"LORENZO BRIGADINI","Ruolo":"responsabile","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":4,"Title":"EDUARDO GIL SILVA AVENDANO","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":5,"Title":"LANSSANA FOFANA","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":6,"Title":"ANDREA PIAZZESE","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":7,"Title":"ANDREA MASI","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":8,"Title":"LUDOVICO CALVARUSO","Ruolo":"risorsa","Responsabile":"LORENZO BRIGADINI","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":9,"Title":"EMILIANO RONZAT","Ruolo":"caporeparto","Responsabile":"EMILIANO RONZAT","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""},
-      {"id":10,"Title":"ELENA ALTEMURA","Ruolo":"risorsa","Responsabile":"EMILIANO RONZAT","Caporeparto":"EMILIANO RONZAT","PasswordHash":"TEMP","PasswordTemp":""}
-    ];
-    // Calcola hash password temporanee se mancanti
-    const config = await ghEnsureFile(PATH_CONFIG, defaultConfig);
-    // Calcola PasswordTemp mancanti
-    let modified = false;
-    for (const m of config) {
-      if (m.PasswordHash === 'TEMP' && !m.PasswordTemp) {
-        m.PasswordTemp = await sha256(pwdTemp(m.Title));
-        modified = true;
-      }
+    // Carica config dal repository (file data/config.json)
+    const config = await ghGetFile(PATH_CONFIG);
+    if (!config || !config.length) {
+      document.getElementById('loginMsg').textContent = '❌ File config.json non trovato nel repository. Carica i file JSON nella cartella data/.';
+      return;
     }
-    if (modified) await ghSaveFile(PATH_CONFIG, config, 'Inizializza password temporanee');
     teamData = config;
 
     const sel = document.getElementById('loginNome');
