@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1000,
+    "Dipendente": "DARIO MANGANO",
+    "Responsabile": "LORENZO BRIGADINI",
+    "Anno": 2026,
+    "Giorni": [
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-12"
+    ],
+    "NoteRisorsa": "Ferie estive",
+    "Stato": "in_attesa",
+    "DataInvio": "2026-03-15",
+    "Approvatore": "",
+    "DataRisposta": "",
+    "MotivazioneRifiuto": "",
+    "Letta": false
+  }
+]
