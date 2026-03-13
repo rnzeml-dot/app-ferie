@@ -58,19 +58,21 @@
     "Letta": true
   },
   {
-    "id": 1773420043092,
-    "Tipo": "sw",
-    "Deroga": false,
+    "id": 1773420135941,
     "Dipendente": "ANDREA MASI",
     "Responsabile": "EMILIANO RONZAT",
     "Anno": 2026,
     "Giorni": [
-      "2026-03-23",
-      "2026-03-26"
+      "2026-04-20",
+      "2026-04-21",
+      "2026-04-22",
+      "2026-04-23",
+      "2026-04-24",
+      "2026-05-11"
     ],
     "NoteRisorsa": "",
     "Stato": "in_attesa",
-    "DataInvio": "2026-03-13T16:40:43.092Z",
+    "DataInvio": "2026-03-13T16:42:15.941Z",
     "Approvatore": "",
     "DataRisposta": "",
     "MotivazioneRifiuto": "",
