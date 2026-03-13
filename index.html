@@ -1368,12 +1368,26 @@ function disegnaCalTeamFiltrato(){
         if(singolo){
           el.classList.add('ferie');
         } else {
-          el.style.position='relative';el.style.paddingBottom='6px';
-          const dots=document.createElement('div');
-          dots.style.cssText='display:flex;justify-content:center;gap:1px;position:absolute;bottom:1px;left:0;right:0';
-          chi.forEach(n=>{const dot=document.createElement('span');dot.textContent='●';
-            dot.style.cssText=`color:${ferieTeam[n.Title].colore};font-size:7px;line-height:1`;dots.appendChild(dot);});
-          el.appendChild(dots);el.title=chi.map(n=>n.Title.split(' ')[0]).join(', ');
+          // Bande colorate in fondo alla cella, una per persona
+          el.style.cssText='position:relative;padding-bottom:5px;overflow:hidden';
+          const bandH=Math.min(4, Math.floor(14/chi.length)); // altezza banda adattiva
+          const bande=document.createElement('div');
+          bande.style.cssText='position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:0';
+          chi.forEach(n=>{
+            const b=document.createElement('div');
+            b.style.cssText=`height:${bandH}px;background:${ferieTeam[n.Title].colore};opacity:.9`;
+            bande.appendChild(b);
+          });
+          el.appendChild(bande);
+          // Badge numero se più di 1 persona
+          if(chi.length>1){
+            const badge=document.createElement('span');
+            badge.textContent=chi.length;
+            badge.style.cssText='position:absolute;top:0;right:1px;font-size:7px;font-weight:700;color:#fff;'+
+              'background:rgba(0,0,0,.55);border-radius:3px;padding:0 2px;line-height:1.4';
+            el.appendChild(badge);
+          }
+          el.title=chi.map(n=>n.Title.split(' ')[0]).join(', ');
         }
       }
       riga.giorni.push(el);
