@@ -59,8 +59,8 @@
     "Ruolo": "risorsa",
     "Responsabile": "LORENZO BRIGADINI",
     "Caporeparto": "EMILIANO RONZAT",
-    "PasswordHash": "TEMP",
-    "PasswordTemp": "90d56333e960a394694658ba00af05740b1899ea0dbbb7868d3de449dc1fad24"
+    "PasswordHash": "90d56333e960a394694658ba00af05740b1899ea0dbbb7868d3de449dc1fad24",
+    "PasswordTemp": ""
   },
   {
     "id": 8,
