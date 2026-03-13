@@ -2235,36 +2235,51 @@ function ricalcolaClasseGiorno(iso, statoFerie, statoPermesso, statoSW, derogaSW
     'ferie-sw','permesso-sw','ferie-perm-sw'
   );
 
-  // Determina classe ferie
-  let clsFerie=statoFerie==='in_attesa'?'attesa':statoFerie==='rifiutata'?'rifiutata':(haFerie?'ferie':null);
-  // Determina classe permesso
-  let clsPerm=statoPermesso==='in_attesa'?'permesso-attesa':statoPermesso==='rifiutata'?'permesso-rif':(haPermesso?'permesso':null);
-  // Determina classe SW
-  let clsSW=statoSW==='in_attesa'?(derogaSW?'sw-deroga':'sw-attesa'):statoSW==='rifiutata'?'sw-rif':(haSW?'sw':null);
+  // Determina classe per ogni tipo:
+  // approvata o presente in locale → classe "piena"; in_attesa → attesa; rifiutata → rif
+  const effFerie = statoFerie==='approvata'||(!statoFerie&&haFerie);
+  const effPerm  = statoPermesso==='approvata'||(!statoPermesso&&haPermesso);
+  const effSW    = statoSW==='approvata'||(!statoSW&&haSW);
 
-  // Applica combinazione
-  const haF=!!clsFerie&&clsFerie!=='attesa'&&clsFerie!=='rifiutata';
-  const haP=!!clsPerm&&clsPerm!=='permesso-attesa'&&clsPerm!=='permesso-rif';
-  const haS=!!clsSW&&clsSW!=='sw-attesa'&&clsSW!=='sw-deroga'&&clsSW!=='sw-rif';
+  let clsFerie = statoFerie==='in_attesa'?'attesa' : statoFerie==='rifiutata'?'rifiutata' : (effFerie?'ferie':null);
+  let clsPerm  = statoPermesso==='in_attesa'?'permesso-attesa' : statoPermesso==='rifiutata'?'permesso-rif' : (effPerm?'permesso':null);
+  let clsSW    = statoSW==='in_attesa'?(derogaSW?'sw-deroga':'sw-attesa') : statoSW==='rifiutata'?'sw-rif' : (effSW?'sw':null);
 
-  if(clsFerie)el.classList.add(clsFerie);
-  if(clsPerm) el.classList.add(clsPerm);
-  if(clsSW)   el.classList.add(clsSW);
+  const haF = effFerie;
+  const haP = effPerm;
+  const haS = effSW;
 
-  // Sovrapponi classi combinate per i gradienti
-  if(haF&&haP&&haS)  {el.classList.remove('ferie','permesso','sw');el.classList.add('ferie-perm-sw');}
-  else if(haF&&haS)  {el.classList.remove('ferie','sw');el.classList.add('ferie-sw');}
-  else if(haP&&haS)  {el.classList.remove('permesso','sw');el.classList.add('permesso-sw');}
-  else if(haF&&haP)  {el.classList.remove('ferie','permesso');el.classList.add('ferie','permesso');}
+  // Applica classi combinate (gradiente) o singole
+  if(haF&&haP&&haS){
+    el.classList.add('ferie-perm-sw');
+  } else if(haF&&haS){
+    el.classList.add('ferie-sw');
+  } else if(haP&&haS){
+    el.classList.add('permesso-sw');
+  } else if(haF&&haP){
+    el.classList.add('ferie','permesso');
+  } else if(haF&&statoSW==='in_attesa'){
+    // Ferie approvate + SW in attesa: gradiente verde/ambra
+    el.classList.add('ferie');
+    el.style.background='linear-gradient(135deg,var(--ferie-bg) 50%,var(--attesa-bg) 50%)';
+  } else if(haP&&statoSW==='in_attesa'){
+    // Permesso + SW in attesa
+    el.classList.add('permesso');
+    el.style.background='linear-gradient(135deg,var(--azzurro) 50%,var(--attesa-bg) 50%)';
+  } else {
+    if(clsFerie) el.classList.add(clsFerie);
+    if(clsPerm)  el.classList.add(clsPerm);
+    if(clsSW)    el.classList.add(clsSW);
+  }
 
-  if(haSW||clsSW){el.style.position='relative';}
+  if(haS||effSW){el.style.position='relative';}
 
-  // Riaggiungi etichette se mancano
-  if(!el.querySelector('.sw-label')&&(clsSW)){
+  // Riaggiungi etichette SW se mancano
+  if(!el.querySelector('.sw-label')&&(haS||statoSW==='in_attesa'||statoSW==='rifiutata')){
     const lbl=document.createElement('span');lbl.className='sw-label';
     lbl.textContent=(derogaSW&&statoSW==='in_attesa')?'SW*':'SW';el.appendChild(lbl);
   }
-  if(!el.querySelector('.ore-label')&&permessiLocali[iso]){
+  if(!el.querySelector('.ore-label')&&(haPermesso||effPerm)&&permessiLocali[iso]){
     const lbl=document.createElement('span');lbl.className='ore-label';
     lbl.textContent=permessiLocali[iso].ore+'h';el.appendChild(lbl);
   }
@@ -2277,20 +2292,45 @@ async function caricaStatiRichieste(anno){
 
     // Costruisci mappa iso → {statoFerie, statoPermesso, statoSW, derogaSW}
     const statoMap={};
+    const aggiungi=(g,campo,valore,extra)=>{
+      if(!statoMap[g])statoMap[g]={};
+      statoMap[g][campo]=valore;
+      if(extra)Object.assign(statoMap[g],extra);
+    };
+
     mie.forEach(req=>{
       const tipo=req.Tipo||'ferie';
       if(!['in_attesa','rifiutata','approvata'].includes(req.Stato))return;
+      if(tipo.startsWith('annullamento_'))return; // gli annullamenti non cambiano il colore direttamente
       (req.Giorni||[]).forEach(g=>{
-        if(!statoMap[g])statoMap[g]={};
-        if(tipo==='permesso') statoMap[g].permesso=req.Stato;
-        else if(tipo==='sw'){statoMap[g].sw=req.Stato;statoMap[g].deroga=req.Deroga;}
-        else statoMap[g].ferie=req.Stato;
+        if(tipo==='permesso')      aggiungi(g,'permesso',req.Stato);
+        else if(tipo==='sw')       aggiungi(g,'sw',req.Stato,{deroga:req.Deroga});
+        else                       aggiungi(g,'ferie',req.Stato);
       });
     });
 
-    // Applica a ogni giorno
+    // Aggiungi anche tutti i giorni locali con ferie/sw/permesso che non hanno richiesta
+    // (così ricalcoliamo correttamente i giorni con combinazioni locali)
+    const annoS=String(anno);
+    [...ferieLocali].filter(g=>g.startsWith(annoS)).forEach(g=>{
+      if(!statoMap[g])statoMap[g]={};
+      if(!statoMap[g].ferie)statoMap[g].ferie=null; // locale, nessuna richiesta
+    });
+    Object.keys(permessiLocali).filter(g=>g.startsWith(annoS)).forEach(g=>{
+      if(!statoMap[g])statoMap[g]={};
+      if(!statoMap[g].permesso)statoMap[g].permesso=null;
+    });
+    [...swLocali].filter(g=>g.startsWith(annoS)).forEach(g=>{
+      if(!statoMap[g])statoMap[g]={};
+      if(!statoMap[g].sw)statoMap[g].sw=null;
+    });
+
+    // Ricalcola solo i giorni che hanno almeno una combinazione (richiesta o locale)
     Object.entries(statoMap).forEach(([iso,s])=>{
-      ricalcolaClasseGiorno(iso,s.ferie,s.permesso,s.sw,s.deroga);
+      // Ricalcola solo se c'è qualcosa da gestire (non solo null)
+      const haQualcosa=s.ferie||s.permesso||s.sw||
+        ferieLocali.has(iso)||permessiLocali[iso]||swLocali.has(iso);
+      if(haQualcosa) ricalcolaClasseGiorno(iso,s.ferie,s.permesso,s.sw,s.deroga);
     });
 
     const inAttesa=mie.filter(r=>r.Stato==='in_attesa').reduce((t,r)=>t+(r.Giorni||[]).length,0);
@@ -2542,28 +2582,45 @@ async function confermaRifiuto(){
 async function controllaNotifiche(){
   try{
     const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    // Notifiche non lette → da marcare lette
     const nuove=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&!r.Letta&&r.Stato!=='in_attesa'&&r.Stato!=='bozza');
-    if(!nuove.length)return;
+    // Tutte le risposte ricevute (approvate/rifiutate) → per mostrare nella sidebar
+    const risposte=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&(r.Stato==='approvata'||r.Stato==='rifiutata'))
+      .sort((a,b)=>new Date(b.DataRisposta||b.DataInvio||0)-new Date(a.DataRisposta||a.DataInvio||0))
+      .slice(0,5); // ultime 5
+
     const panel=document.getElementById('sideNotif'),list=document.getElementById('notifList');
-    panel.classList.remove('hidden');list.innerHTML='';
-    for(const req of nuove){
-      const ok=req.Stato==='approvata';
-      const tipo=req.Tipo||'ferie';
-      const tipoLabel=tipo==='permesso'?'Permesso':tipo==='sw'?'Smartworking':tipo.startsWith('annullamento_')?'Annullamento':'Ferie';
-      const div=document.createElement('div');
-      div.style.cssText=`font-size:12px;padding:6px 10px;border-radius:6px;margin-bottom:6px;
-        background:${ok?'#F0FDF4':'#FEF2F2'};border:1px solid ${ok?'#BBF7D0':'#FECACA'};
-        cursor:pointer;transition:opacity .15s`;
-      div.title='Clicca per i dettagli';
-      div.innerHTML=`<b>${ok?'✅':'❌'} ${ok?'Approvata':'Rifiutata'}</b> — ${tipoLabel} ${req.Anno} (${(req.Giorni||[]).length}gg)
-        <span style="float:right;font-size:10px;opacity:.6">dettagli ›</span>`;
-      div.onmouseenter=()=>div.style.opacity='.75';
-      div.onmouseleave=()=>div.style.opacity='1';
-      div.onclick=()=>apriDettaglioNotifica(req);
-      list.appendChild(div);
+
+    if(!risposte.length){
+      panel.classList.add('hidden');
+    } else {
+      panel.classList.remove('hidden');
+      list.innerHTML='';
+      for(const req of risposte){
+        const ok=req.Stato==='approvata';
+        const tipo=req.Tipo||'ferie';
+        const tipoLabel=tipo==='permesso'?'Permesso':tipo==='sw'?'SW':tipo.startsWith('annullamento_')?'Annull.':'Ferie';
+        const isNuova=nuove.some(n=>n.id===req.id);
+        const div=document.createElement('div');
+        div.style.cssText=`font-size:12px;padding:6px 10px;border-radius:6px;margin-bottom:6px;
+          background:${ok?'#F0FDF4':'#FEF2F2'};border:1px solid ${ok?'#BBF7D0':'#FECACA'};
+          cursor:pointer;transition:opacity .15s;position:relative`;
+        div.title='Clicca per i dettagli';
+        div.innerHTML=`<b>${ok?'✅':'❌'} ${ok?'Approvata':'Rifiutata'}</b> — ${tipoLabel} ${req.Anno} (${(req.Giorni||[]).length}gg)
+          ${isNuova?'<span style="position:absolute;top:5px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--rosso)"></span>':''}
+          <span style="float:right;font-size:10px;opacity:.5;margin-right:${isNuova?14:0}px">›</span>`;
+        div.onmouseenter=()=>div.style.opacity='.75';
+        div.onmouseleave=()=>div.style.opacity='1';
+        div.onclick=()=>apriDettaglioNotifica(req);
+        list.appendChild(div);
+      }
     }
-    nuove.forEach(n=>{ const r=reqs.find(x=>x.id===n.id); if(r) r.Letta=true; });
-    await ghSaveFile(PATH_RICHIESTE,reqs,'Marca notifiche lette');
+
+    // Marca come lette
+    if(nuove.length){
+      nuove.forEach(n=>{ const r=reqs.find(x=>x.id===n.id); if(r) r.Letta=true; });
+      await ghSaveFile(PATH_RICHIESTE,reqs,'Marca notifiche lette');
+    }
   }catch(e){console.error('notifiche:',e);}
 }
 
