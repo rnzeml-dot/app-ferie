@@ -77,8 +77,8 @@
     "Ruolo": "caporeparto",
     "Responsabile": "EMILIANO RONZAT",
     "Caporeparto": "EMILIANO RONZAT",
-    "PasswordHash": "TEMP",
-    "PasswordTemp": "8f0f3ad115d38b34d0e31d248b30fc347769ab13ce2ea65619d809b5533b3b46"
+    "PasswordHash": "8f0f3ad115d38b34d0e31d248b30fc347769ab13ce2ea65619d809b5533b3b46",
+    "PasswordTemp": ""
   },
   {
     "id": 10,
