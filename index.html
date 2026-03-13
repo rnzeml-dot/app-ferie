@@ -6,242 +6,197 @@
 <title>Pianificazione Ferie</title>
 <link href="https://fonts.googleapis.com/css2?family=Aptos:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ── Reset & variabili ─────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --blu:       #2563EB;
-    --blu2:      #3B82F6;
-    --blu-light: #EFF6FF;
-    --verde:     #16A34A;
-    --ambra:     #F59E0B;
-    --rosso:     #EF4444;
-    --viola:     #7C3AED;
-    --grigio:    #F1F5F9;
-    --bordo:     #CBD5E1;
-    --testo:     #1E293B;
-    --debole:    #94A3B8;
-    --card:      #FFFFFF;
-    --ferie-bg:  #16A34A;
-    --attesa-bg: #F59E0B;
-    --rif-bg:    #EF4444;
-    --oggi-bg:   #F59E0B;
-    --font: 'Aptos', 'Calibri', 'Segoe UI', sans-serif;
+    --blu:#2563EB; --blu2:#3B82F6; --blu-light:#EFF6FF;
+    --verde:#16A34A; --ambra:#F59E0B; --rosso:#EF4444; --viola:#7C3AED;
+    --grigio:#F1F5F9; --bordo:#CBD5E1; --testo:#1E293B; --debole:#94A3B8;
+    --card:#FFFFFF; --ferie-bg:#16A34A; --attesa-bg:#F59E0B;
+    --rif-bg:#EF4444; --oggi-bg:#F59E0B;
+    --font:'Aptos','Calibri','Segoe UI',sans-serif;
   }
+  body { font-family:var(--font); background:var(--grigio); color:var(--testo); min-height:100vh; }
 
-  body { font-family: var(--font); background: var(--grigio); color: var(--testo); min-height: 100vh; }
+  /* Header */
+  .app-header { background:var(--blu); padding:0 24px; display:flex; align-items:center;
+    justify-content:space-between; height:56px; position:sticky; top:0; z-index:100;
+    border-bottom:3px solid var(--blu2); }
+  .app-header .logo { color:#fff; font-size:20px; font-weight:700; letter-spacing:2px; }
+  .app-header .logo span { color:var(--blu2); }
+  .user-info { display:flex; align-items:center; gap:10px; }
+  .user-name { color:#fff; font-size:14px; font-weight:600; }
+  .badge-ruolo { padding:2px 10px; border-radius:99px; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px; }
+  .badge-caporeparto { background:var(--verde); color:#fff; }
+  .badge-responsabile { background:var(--viola); color:#fff; }
+  .badge-risorsa { background:var(--blu2); color:#fff; }
+  .btn-logout { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3);
+    padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-family:var(--font);
+    transition:background .15s; }
+  .btn-logout:hover { background:rgba(255,255,255,.25); }
 
-  /* ── Header ────────────────────────────────────────────────── */
-  .app-header {
-    background: var(--blu);
-    padding: 0 24px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 56px; position: sticky; top: 0; z-index: 100;
-    border-bottom: 3px solid var(--blu2);
-  }
-  .app-header .logo { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; }
-  .app-header .logo span { color: var(--blu2); }
-  .user-info { display: flex; align-items: center; gap: 10px; }
-  .user-name { color: #fff; font-size: 14px; font-weight: 600; }
-  .badge-ruolo {
-    padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .badge-caporeparto { background: var(--verde);  color: #fff; }
-  .badge-responsabile { background: var(--viola); color: #fff; }
-  .badge-risorsa      { background: var(--blu2);  color: #fff; }
-  .btn-logout { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
-    padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: var(--font);
-    transition: background .15s; }
-  .btn-logout:hover { background: rgba(255,255,255,0.25); }
+  /* Layout */
+  .app-body { display:flex; gap:0; height:calc(100vh - 56px); overflow:hidden; }
 
-  /* ── Layout principale ─────────────────────────────────────── */
-  .app-body { display: flex; gap: 0; height: calc(100vh - 56px); overflow: hidden; }
+  /* Sidebar */
+  .sidebar { width:220px; min-width:220px; background:var(--card);
+    border-right:1px solid var(--bordo); overflow-y:auto; padding:16px 12px;
+    display:flex; flex-direction:column; gap:20px; }
+  .sidebar h3 { font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:1px; color:var(--blu); padding-bottom:6px;
+    border-bottom:2px solid var(--blu-light); }
+  .legenda-item { display:flex; align-items:center; gap:8px; font-size:12px; padding:2px 0; }
+  .dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+  .stat-row { display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; padding:4px 0; }
+  .stat-val { font-weight:700; color:var(--blu); font-size:15px; }
+  .notif-badge { background:var(--rosso); color:#fff; border-radius:99px;
+    font-size:10px; font-weight:700; padding:1px 7px; }
 
-  /* ── Sidebar ───────────────────────────────────────────────── */
-  .sidebar {
-    width: 220px; min-width: 220px; background: var(--card);
-    border-right: 1px solid var(--bordo); overflow-y: auto; padding: 16px 12px;
-    display: flex; flex-direction: column; gap: 20px;
-  }
-  .sidebar h3 { font-size: 10px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--blu); padding-bottom: 6px;
-    border-bottom: 2px solid var(--blu-light); }
-  .legenda-item { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 2px 0; }
-  .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  /* Riepilogo mensile sidebar */
+  .riepilogo-mese { font-size:11px; padding:3px 0; border-bottom:1px solid var(--bordo);
+    display:flex; justify-content:space-between; align-items:center; }
+  .riepilogo-mese:last-child { border-bottom:none; }
+  .riepilogo-mese .nm { color:var(--testo); }
+  .riepilogo-mese .nf { font-weight:700; color:var(--verde); }
+  .riepilogo-mese .nx { font-size:10px; color:var(--debole); }
 
-  .stat-row { display: flex; justify-content: space-between; align-items: center;
-    font-size: 12px; padding: 4px 0; }
-  .stat-val { font-weight: 700; color: var(--blu); font-size: 15px; }
+  /* Area calendario */
+  .cal-area { flex:1; overflow-y:auto; padding:16px; }
 
-  .notif-badge { background: var(--rosso); color: #fff; border-radius: 99px;
-    font-size: 10px; font-weight: 700; padding: 1px 7px; }
-
-  /* ── Area calendario ───────────────────────────────────────── */
-  .cal-area { flex: 1; overflow-y: auto; padding: 16px; }
-
-  /* Toolbar anno */
-  .toolbar {
-    background: var(--blu-light); border: 1px solid var(--bordo);
-    border-radius: 10px; padding: 10px 16px; margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  }
-  .anno-ctrl { display: flex; align-items: center; gap: 6px; }
-  .anno-ctrl label { font-size: 12px; font-weight: 600; color: var(--testo); }
-  .anno-ctrl input[type=number] {
-    width: 68px; border: 1px solid var(--bordo); border-radius: 6px;
-    padding: 4px 8px; font-family: var(--font); font-size: 13px;
-    background: var(--card); color: var(--testo);
-  }
-  .sep { width: 1px; height: 28px; background: var(--bordo); margin: 0 4px; }
-
-  .btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 13px; border-radius: 6px; border: none; cursor: pointer;
-    font-family: var(--font); font-size: 12px; font-weight: 700;
-    color: #fff; transition: filter .15s, transform .1s;
-  }
-  .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
-  .btn-verde  { background: var(--verde); }
-  .btn-rosso  { background: var(--rosso); }
-  .btn-blu    { background: var(--blu); }
-  .btn-viola  { background: var(--viola); }
-  .btn-grigio { background: var(--debole); }
-  .btn-ambra  { background: var(--ambra); }
-  .btn-teal   { background: #0F766E; }
-  .btn-range  { background: var(--card); color: var(--testo); border: 1px solid var(--bordo); }
-  .btn-range.active { background: var(--blu); color: #fff; border-color: var(--blu); }
+  /* Toolbar */
+  .toolbar { background:var(--blu-light); border:1px solid var(--bordo);
+    border-radius:10px; padding:10px 16px; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .anno-ctrl { display:flex; align-items:center; gap:6px; }
+  .anno-ctrl label { font-size:12px; font-weight:600; }
+  .anno-ctrl input[type=number] { width:68px; border:1px solid var(--bordo); border-radius:6px;
+    padding:4px 8px; font-family:var(--font); font-size:13px; background:var(--card); }
+  .sep { width:1px; height:28px; background:var(--bordo); margin:0 4px; }
+  .btn { display:inline-flex; align-items:center; gap:5px; padding:5px 13px;
+    border-radius:6px; border:none; cursor:pointer; font-family:var(--font);
+    font-size:12px; font-weight:700; color:#fff; transition:filter .15s,transform .1s; }
+  .btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .btn:active { transform:translateY(0); }
+  .btn-verde { background:var(--verde); }
+  .btn-rosso { background:var(--rosso); }
+  .btn-blu   { background:var(--blu); }
+  .btn-viola { background:var(--viola); }
+  .btn-grigio{ background:var(--debole); }
+  .btn-ambra { background:var(--ambra); }
+  .btn-teal  { background:#0F766E; }
+  .btn-pdf   { background:#DC2626; }
+  .btn-range { background:var(--card); color:var(--testo); border:1px solid var(--bordo); }
+  .btn-range.active { background:var(--blu); color:#fff; border-color:var(--blu); }
 
   /* Griglia mesi */
-  .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cal-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .mese-card { background:var(--card); border:1px solid var(--bordo); border-radius:10px;
+    overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .mese-hdr { background:var(--blu-light); padding:6px 10px; display:flex;
+    align-items:center; gap:6px; border-left:3px solid var(--blu); }
+  .mese-hdr span { font-size:12px; font-weight:700; }
+  .mese-grid { display:grid; grid-template-columns:repeat(8,1fr); padding:4px; gap:1px; }
+  .giorno-hdr { text-align:center; font-size:10px; font-weight:700; color:var(--blu);
+    padding:2px 0; border-bottom:1px solid var(--bordo); margin-bottom:1px; }
+  .giorno-hdr.wkd { color:var(--rosso); }
+  .giorno-hdr.nw  { color:var(--debole); font-size:9px; }
+  .giorno { text-align:center; font-size:11px; padding:3px 1px; border-radius:4px;
+    cursor:pointer; transition:background .1s; user-select:none; position:relative; }
+  .giorno:hover:not(.vuoto):not(.festivo-nat):not(.weekend) { background:#DCFCE7; }
+  .giorno.vuoto { cursor:default; }
+  .giorno.festivo-nat { background:#FEF2F2; color:var(--rosso); font-weight:700; cursor:default; }
+  .giorno.weekend { background:#F0F9FF; color:#64748B; }
+  .giorno.oggi   { background:var(--oggi-bg); color:#fff; font-weight:700; border-radius:50%; }
+  .giorno.ferie  { background:var(--ferie-bg); color:#fff; font-weight:700; }
+  .giorno.attesa { background:var(--attesa-bg); color:#fff; font-weight:700; }
+  .giorno.rifiutata { background:var(--rif-bg); color:#fff; font-weight:700; }
+  .giorno.range-start { background:#F97316 !important; color:#fff !important; }
+  .nw-cell { text-align:center; font-size:9px; color:var(--debole); padding:3px 0; }
 
-  .mese-card {
-    background: var(--card); border: 1px solid var(--bordo); border-radius: 10px;
-    overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.05);
-  }
-  .mese-hdr {
-    background: var(--blu-light); padding: 6px 10px;
-    display: flex; align-items: center; gap: 6px;
-    border-left: 3px solid var(--blu);
-  }
-  .mese-hdr span { font-size: 12px; font-weight: 700; color: var(--testo); }
+  /* Overlay / Modal */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center;
+    z-index:200; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .overlay.open { opacity:1; pointer-events:all; }
+  .modal { background:var(--card); border-radius:12px; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.25); min-width:360px; max-width:520px; width:90%;
+    transform:translateY(16px); transition:transform .2s; }
+  .overlay.open .modal { transform:translateY(0); }
+  .modal-hdr { background:var(--blu); color:#fff; padding:16px 20px; border-top:3px solid var(--blu2); }
+  .modal-hdr h2 { font-size:15px; font-weight:700; }
+  .modal-hdr p  { font-size:12px; color:rgba(255,255,255,.7); margin-top:3px; }
+  .modal-body { padding:20px; display:flex; flex-direction:column; gap:14px; }
+  .modal-footer { padding:12px 20px; background:var(--grigio);
+    display:flex; justify-content:flex-end; gap:8px; }
+  .field label { display:block; font-size:11px; font-weight:700; color:var(--blu);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+  .field input,.field select,.field textarea { width:100%; border:1px solid var(--bordo);
+    border-radius:6px; padding:8px 10px; font-family:var(--font); font-size:13px;
+    color:var(--testo); background:var(--card); }
+  .field textarea { resize:vertical; min-height:70px; }
+  .field .pwd-wrap { display:flex; border:1px solid var(--bordo); border-radius:6px; overflow:hidden; }
+  .field .pwd-wrap input { border:none; border-radius:0; flex:1; }
+  .field .pwd-toggle { background:var(--grigio); border:none; padding:0 10px;
+    cursor:pointer; color:var(--debole); font-size:14px; }
+  .msg-err { color:var(--rosso); font-size:12px; min-height:16px; }
+  .msg-ok  { color:var(--verde); font-size:12px; }
 
-  .mese-grid { display: grid; grid-template-columns: repeat(8, 1fr); padding: 4px; gap: 1px; }
-  .giorno-hdr {
-    text-align: center; font-size: 10px; font-weight: 700; color: var(--blu);
-    padding: 2px 0; border-bottom: 1px solid var(--bordo); margin-bottom: 1px;
-  }
-  .giorno-hdr.wkd { color: var(--rosso); }
-  .giorno-hdr.nw  { color: var(--debole); font-size: 9px; }
+  /* Richieste card */
+  .richiesta-card { border:1px solid var(--bordo); border-radius:8px; overflow:hidden; margin-bottom:10px; }
+  .richiesta-hdr { background:var(--blu-light); padding:8px 12px;
+    display:flex; align-items:center; justify-content:space-between; }
+  .richiesta-nome { font-weight:700; font-size:13px; }
+  .richiesta-body { padding:10px 12px; font-size:12px; }
+  .stato-badge { padding:2px 9px; border-radius:99px; font-size:11px; font-weight:700; color:#fff; }
+  .stato-attesa    { background:var(--ambra); }
+  .stato-approvata { background:var(--verde); }
+  .stato-rifiutata { background:var(--rosso); }
+  .stato-bozza     { background:var(--debole); }
 
-  .giorno {
-    text-align: center; font-size: 11px; padding: 3px 1px; border-radius: 4px;
-    cursor: pointer; transition: background .1s; user-select: none;
-    position: relative;
-  }
-  .giorno:hover:not(.vuoto):not(.festivo-nat):not(.weekend) { background: #DCFCE7; }
-  .giorno.vuoto  { cursor: default; }
-  .giorno.festivo-nat { background: #FEF2F2; color: var(--rosso); font-weight: 700; cursor: default; }
-  .giorno.weekend { background: #F0F9FF; color: #64748B; }
-  .giorno.oggi   { background: var(--oggi-bg); color: #fff; font-weight: 700; border-radius: 50%; }
-  .giorno.ferie  { background: var(--ferie-bg); color: #fff; font-weight: 700; border-radius: 4px; }
-  .giorno.attesa { background: var(--attesa-bg); color: #fff; font-weight: 700; border-radius: 4px; }
-  .giorno.rifiutata { background: var(--rif-bg); color: #fff; font-weight: 700; border-radius: 4px; }
-  .giorno.range-start { background: #F97316 !important; color: #fff !important; border-radius: 4px; }
-  .nw-cell { text-align: center; font-size: 9px; color: var(--debole); padding: 3px 0; }
-
-  /* ── Overlay / Modal ───────────────────────────────────────── */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.4);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
-  }
-  .overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: var(--card); border-radius: 12px; overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,.25); min-width: 360px; max-width: 520px;
-    width: 90%; transform: translateY(16px); transition: transform .2s;
-  }
-  .overlay.open .modal { transform: translateY(0); }
-  .modal-hdr {
-    background: var(--blu); color: #fff; padding: 16px 20px;
-    border-top: 3px solid var(--blu2);
-  }
-  .modal-hdr h2 { font-size: 15px; font-weight: 700; }
-  .modal-hdr p  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 3px; }
-  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-  .modal-footer { padding: 12px 20px; background: var(--grigio);
-    display: flex; justify-content: flex-end; gap: 8px; }
-
-  .field label { display: block; font-size: 11px; font-weight: 700; color: var(--blu);
-    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-  .field input, .field select, .field textarea {
-    width: 100%; border: 1px solid var(--bordo); border-radius: 6px; padding: 8px 10px;
-    font-family: var(--font); font-size: 13px; color: var(--testo); background: var(--card);
-  }
-  .field textarea { resize: vertical; min-height: 70px; }
-  .field .pwd-wrap { display: flex; border: 1px solid var(--bordo); border-radius: 6px; overflow: hidden; }
-  .field .pwd-wrap input { border: none; border-radius: 0; flex: 1; }
-  .field .pwd-toggle { background: var(--grigio); border: none; padding: 0 10px; cursor: pointer;
-    color: var(--debole); font-size: 14px; }
-
-  .msg-err { color: var(--rosso); font-size: 12px; min-height: 16px; }
-  .msg-ok  { color: var(--verde); font-size: 12px; }
-
-  /* Richieste cards */
-  .richiesta-card {
-    border: 1px solid var(--bordo); border-radius: 8px; overflow: hidden; margin-bottom: 10px;
-  }
-  .richiesta-hdr { background: var(--blu-light); padding: 8px 12px;
-    display: flex; align-items: center; justify-content: space-between; }
-  .richiesta-nome { font-weight: 700; font-size: 13px; }
-  .richiesta-body { padding: 10px 12px; font-size: 12px; }
-  .stato-badge { padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; color: #fff; }
-  .stato-attesa    { background: var(--ambra); }
-  .stato-approvata { background: var(--verde); }
-  .stato-rifiutata { background: var(--rosso); }
-  .stato-bozza     { background: var(--debole); }
-
-  /* Loading spinner */
-  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--bordo);
-    border-top-color: var(--blu); border-radius: 50%; animation: spin .7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 20px; right: 20px; background: var(--testo); color: #fff;
-    padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-    z-index: 999; opacity: 0; transform: translateY(10px);
-    transition: opacity .3s, transform .3s; pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
-  .toast.verde { background: var(--verde); }
-  .toast.rosso { background: var(--rosso); }
+  /* Spinner / Toast */
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--bordo);
+    border-top-color:var(--blu); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--testo); color:#fff;
+    padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600;
+    z-index:999; opacity:0; transform:translateY(10px);
+    transition:opacity .3s,transform .3s; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.verde { background:var(--verde); }
+  .toast.rosso { background:var(--rosso); }
 
   /* Setup screen */
-  .setup-screen {
-    position: fixed; inset: 0; background: var(--grigio);
-    display: flex; align-items: center; justify-content: center; z-index: 500;
+  .setup-screen { position:fixed; inset:0; background:var(--grigio);
+    display:flex; align-items:center; justify-content:center; z-index:500; }
+  .setup-card { background:var(--card); border-radius:14px; padding:32px;
+    max-width:500px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,.12); }
+  .setup-card h1 { font-size:22px; color:var(--blu); font-weight:700; margin-bottom:8px; }
+  .setup-card p  { font-size:13px; color:var(--debole); margin-bottom:20px; line-height:1.6; }
+  .setup-card code { background:var(--blu-light); color:var(--blu);
+    padding:2px 6px; border-radius:4px; font-size:12px; }
+
+  .statusbar { background:var(--blu-light); border-top:1px solid var(--bordo);
+    padding:5px 16px; font-size:11px; color:var(--debole); }
+  .hidden { display:none !important; }
+
+  /* Chip team filtro */
+  .chip-membro { display:inline-flex; align-items:center; gap:5px; border-radius:99px;
+    padding:3px 12px; font-size:11px; cursor:pointer; transition:opacity .15s;
+    border:2px solid transparent; font-weight:600; }
+  .chip-membro.disattivo { opacity:.35; }
+
+  /* Stampa PDF */
+  @media print {
+    body * { visibility:hidden; }
+    #printArea, #printArea * { visibility:visible; }
+    #printArea { position:fixed; inset:0; background:#fff; padding:20px; font-size:11px; }
   }
-  .setup-card { background: var(--card); border-radius: 14px; padding: 32px;
-    max-width: 500px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,.12); }
-  .setup-card h1 { font-size: 22px; color: var(--blu); font-weight: 700; margin-bottom: 8px; }
-  .setup-card p  { font-size: 13px; color: var(--debole); margin-bottom: 20px; line-height: 1.6; }
-  .setup-card code { background: var(--blu-light); color: var(--blu); padding: 2px 6px;
-    border-radius: 4px; font-size: 12px; }
-
-  .hidden { display: none !important; }
-
-  /* Barra di stato */
-  .statusbar { background: var(--blu-light); border-top: 1px solid var(--bordo);
-    padding: 5px 16px; font-size: 11px; color: var(--debole); }
 </style>
 </head>
 <body>
 
-
-<!-- ══ SETUP SCREEN (prima configurazione) ════════════════════════════════ -->
+<!-- SETUP -->
 <div class="setup-screen hidden" id="setupScreen">
   <div class="setup-card">
     <h1>⚙️ Configurazione iniziale</h1>
@@ -260,7 +215,7 @@
   </div>
 </div>
 
-<!-- ══ LOGIN ══════════════════════════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div class="overlay" id="loginOverlay" style="background:#1E293B">
   <div class="modal" style="min-width:320px;max-width:380px">
     <div class="modal-hdr" style="text-align:center;padding:28px 20px 20px">
@@ -268,10 +223,7 @@
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">Sistema di Pianificazione</div>
     </div>
     <div class="modal-body">
-      <div class="field">
-        <label>Utente</label>
-        <select id="loginNome"></select>
-      </div>
+      <div class="field"><label>Utente</label><select id="loginNome"></select></div>
       <div class="field">
         <label>Password</label>
         <div class="pwd-wrap">
@@ -282,17 +234,13 @@
       <div id="loginMsg" class="msg-err"></div>
     </div>
     <div class="modal-footer" style="justify-content:center;padding:16px 20px">
-      <button class="btn btn-blu" style="width:100%;justify-content:center;padding:11px;font-size:14px" onclick="doLogin()">
-        ACCEDI →
-      </button>
+      <button class="btn btn-blu" style="width:100%;justify-content:center;padding:11px;font-size:14px" onclick="doLogin()">ACCEDI →</button>
     </div>
   </div>
 </div>
 
-<!-- ══ APP ════════════════════════════════════════════════════════════════ -->
+<!-- APP -->
 <div id="app" class="hidden">
-
-  <!-- Header -->
   <header class="app-header">
     <div class="logo">FE<span>R</span>IE</div>
     <div class="user-info">
@@ -303,26 +251,28 @@
   </header>
 
   <div class="app-body">
-
     <!-- Sidebar -->
     <aside class="sidebar">
       <div>
         <h3>Legenda</h3>
-        <div class="legenda-item"><div class="dot" style="background:var(--ferie-bg)"></div> Ferie approvate</div>
-        <div class="legenda-item"><div class="dot" style="background:var(--attesa-bg)"></div> In attesa</div>
-        <div class="legenda-item"><div class="dot" style="background:var(--rif-bg)"></div> Rifiutate</div>
-        <div class="legenda-item"><div class="dot" style="background:var(--oggi-bg);border-radius:50%"></div> Oggi</div>
-        <div class="legenda-item"><div class="dot" style="background:#FEF2F2;border:1px solid var(--rosso)"></div> Festività</div>
-        <div class="legenda-item"><div class="dot" style="background:#F0F9FF;border:1px solid var(--bordo)"></div> Weekend</div>
+        <div class="legenda-item"><div class="dot" style="background:var(--ferie-bg)"></div>Ferie salvate</div>
+        <div class="legenda-item"><div class="dot" style="background:var(--attesa-bg)"></div>In attesa</div>
+        <div class="legenda-item"><div class="dot" style="background:var(--rif-bg)"></div>Rifiutate</div>
+        <div class="legenda-item"><div class="dot" style="background:var(--oggi-bg);border-radius:50%"></div>Oggi</div>
+        <div class="legenda-item"><div class="dot" style="background:#FEF2F2;border:1px solid var(--rosso)"></div>Festività</div>
+        <div class="legenda-item"><div class="dot" style="background:#F0F9FF;border:1px solid var(--bordo)"></div>Weekend</div>
       </div>
       <div>
-        <h3>Riepilogo</h3>
-        <div class="stat-row"><span>Anno</span><span class="stat-val" id="statAnno">—</span></div>
-        <div class="stat-row"><span>Approvati</span><span class="stat-val" id="statAppr">—</span></div>
+        <h3>Riepilogo anno <span id="statAnno">—</span></h3>
+        <div class="stat-row"><span>Giorni ferie</span><span class="stat-val" id="statAppr">—</span></div>
         <div class="stat-row"><span>Selezionati</span><span class="stat-val" id="statSel">—</span></div>
         <div class="stat-row" id="statAttesaRow" style="display:none">
           <span>In attesa</span><span class="notif-badge" id="statAttesa">0</span>
         </div>
+      </div>
+      <div id="riepilogoMensile">
+        <h3>Dettaglio mensile</h3>
+        <div id="riepilogoMensileBody"></div>
       </div>
       <div id="sideNotif" class="hidden">
         <h3>Notifiche</h3>
@@ -339,16 +289,16 @@
         </div>
         <div class="sep"></div>
         <button class="btn btn-verde"  onclick="apriPeriodo()">+ Aggiungi</button>
+        <button class="btn btn-range"  id="btnRange" onclick="toggleRange()">⊞ Periodo</button>
         <button class="btn btn-rosso"  onclick="rimuoviFerie()">✕ Rimuovi tutto</button>
         <button class="btn btn-blu"    onclick="salvaFerie()">↓ Salva</button>
-        <div class="sep"></div>
-        <button class="btn btn-range"  id="btnRange" onclick="toggleRange()">⊞ Periodo</button>
+        <button class="btn btn-pdf"    onclick="stampaPDF()">🖨 Stampa PDF</button>
         <div class="sep"></div>
         <button class="btn btn-grigio" onclick="apriCambioPassword()">🔐 Password</button>
         <span id="toolbarManager" class="hidden" style="display:contents">
           <div class="sep"></div>
-          <button class="btn btn-blu"  onclick="apriRichieste()">≡ Richieste team</button>
-          <button class="btn btn-teal" onclick="apriVistaTeam()">⊛ Vista team</button>
+          <button class="btn btn-blu"   onclick="apriRichieste()">≡ Richieste team</button>
+          <button class="btn btn-teal"  onclick="apriVistaTeam()">⊛ Vista team</button>
           <button class="btn btn-viola" onclick="apriResetPwd()">🔑 Reset pwd</button>
         </span>
         <span id="toolbarRisorsa" class="hidden" style="display:contents">
@@ -362,7 +312,7 @@
   </div>
 </div>
 
-<!-- ══ MODALS ════════════════════════════════════════════════════════════ -->
+<!-- MODALS -->
 
 <!-- Aggiungi periodo -->
 <div class="overlay" id="overlayPeriodo">
@@ -387,7 +337,7 @@
   <div class="modal">
     <div class="modal-hdr"><h2>▶ Invia richiesta ferie</h2><p id="richiestaGiorni"></p></div>
     <div class="modal-body">
-      <div class="field"><label>Note (opzionale)</label><textarea id="richiestaNote" placeholder="Motivazione o note aggiuntive…"></textarea></div>
+      <div class="field"><label>Note (opzionale)</label><textarea id="richiestaNote" placeholder="Motivazione o note…"></textarea></div>
       <div id="richiestaMsg" class="msg-err"></div>
     </div>
     <div class="modal-footer">
@@ -397,7 +347,7 @@
   </div>
 </div>
 
-<!-- Richieste team (manager) -->
+<!-- Richieste team manager -->
 <div class="overlay" id="overlayRichiesteMgr">
   <div class="modal" style="max-width:600px">
     <div class="modal-hdr"><h2>≡ Richieste del team</h2></div>
@@ -413,7 +363,7 @@
   <div class="modal">
     <div class="modal-hdr"><h2>❌ Rifiuta richiesta</h2></div>
     <div class="modal-body">
-      <div class="field"><label>Motivazione</label><textarea id="rifiutoMotiv" placeholder="Inserisci la motivazione del rifiuto…"></textarea></div>
+      <div class="field"><label>Motivazione</label><textarea id="rifiutoMotiv" placeholder="Inserisci la motivazione…"></textarea></div>
       <div id="rifiutoMsg" class="msg-err"></div>
     </div>
     <div class="modal-footer">
@@ -425,11 +375,20 @@
 
 <!-- Vista team -->
 <div class="overlay" id="overlayVistaTeam">
-  <div class="modal" style="max-width:900px;width:95%">
-    <div class="modal-hdr"><h2>⊛ Vista calendario team</h2></div>
-    <div class="modal-body" style="max-height:70vh;overflow-y:auto;padding:12px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px" id="teamFiltri"></div>
-      <div class="cal-grid" id="calTeam" style="gap:8px"></div>
+  <div class="modal" style="max-width:960px;width:97%">
+    <div class="modal-hdr">
+      <h2>⊛ Vista calendario team</h2>
+      <p id="vistaTeamSottotitolo"></p>
+    </div>
+    <div class="modal-body" style="padding:12px">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px" id="teamFiltri"></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-pdf" onclick="stampaPDFTeam()">🖨 Stampa PDF team</button>
+        <button class="btn btn-grigio" id="btnTornaTeam" onclick="tornaVistaTeam()" style="display:none">← Torna al team</button>
+      </div>
+      <div style="max-height:62vh;overflow-y:auto">
+        <div class="cal-grid" id="calTeam" style="gap:8px"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayVistaTeam')">Chiudi</button>
@@ -473,12 +432,12 @@
   </div>
 </div>
 
-<!-- Reset password (manager) -->
+<!-- Reset password manager -->
 <div class="overlay" id="overlayResetPwd">
   <div class="modal" style="max-width:480px">
     <div class="modal-hdr">
       <h2>🔑 Reset Password Utenti</h2>
-      <p>La password tornerà a: PrimoNome + iniziale cognome + anno (es. DarioM2026)</p>
+      <p>La password tornerà a: PrimoNome + iniziale cognome + anno</p>
     </div>
     <div class="modal-body" id="resetPwdList" style="max-height:50vh;overflow-y:auto"></div>
     <div class="modal-footer">
@@ -487,802 +446,866 @@
   </div>
 </div>
 
+<!-- Area stampa nascosta -->
+<div id="printArea" style="display:none"></div>
+
 <div class="toast" id="toast"></div>
 
-
 <script>
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CONFIGURAZIONE
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
-              'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+/* ═══════════════════════════════════════════════════════════════════
+   COSTANTI
+═══════════════════════════════════════════════════════════════════ */
+const MESI   = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const GIORNI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
-const PALETTE = ['#4CAF50','#2196F3','#FF9800','#9C27B0','#F44336',
-                 '#00BCD4','#795548','#607D8B','#E91E63','#FF5722'];
+const PALETTE= ['#4CAF50','#2196F3','#FF9800','#9C27B0','#F44336',
+                '#00BCD4','#795548','#607D8B','#E91E63','#FF5722'];
+const PATH_CONFIG    = 'data/config.json';
+const PATH_FERIE     = 'data/ferie.json';
+const PATH_RICHIESTE = 'data/richieste.json';
 
-// Stato globale
-let GH_OWNER = '';
-let GH_REPO  = '';
-let GH_TOKEN = '';
-let utenteCorrente = null;
-let teamData = [];
-let ferieLocali = new Set();
-let rangeMode = false;
-let rangeStart = null;
-let rifiutoTarget = null;
-let primAccesso = false;
+/* ═══════════════════════════════════════════════════════════════════
+   STATO GLOBALE
+═══════════════════════════════════════════════════════════════════ */
+let GH_OWNER='', GH_REPO='', GH_TOKEN='';
+let utenteCorrente=null, teamData=[], ferieLocali=new Set();
+let rangeMode=false, rangeStart=null, rifiutoTarget=null, primAccesso=false;
+let vistaTeamData=null; // cache per il PDF team
+const fileSha={};
 
-// Cache SHA dei file GitHub (serve per aggiornare i file)
-const fileSha = {};
-
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    GITHUB API
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function ghHeaders() {
-  return {
-    'Authorization': `token ${GH_TOKEN}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json'
-  };
+═══════════════════════════════════════════════════════════════════ */
+function ghHeaders(){
+  return {'Authorization':`token ${GH_TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+}
+async function ghGetFile(path){
+  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{headers:ghHeaders()});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error(`GitHub GET ${path}: ${r.status}`);
+  const d=await r.json(); fileSha[path]=d.sha;
+  return JSON.parse(atob(d.content.replace(/\n/g,'')));
+}
+async function ghSaveFile(path,data,msg){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  const body={message:msg||`Aggiorna ${path}`,content};
+  if(fileSha[path])body.sha=fileSha[path];
+  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,
+    {method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.text();throw new Error(`GitHub PUT ${path}: ${r.status}`);}
+  const d=await r.json(); fileSha[path]=d.content.sha; return d;
 }
 
-async function ghGetFile(path) {
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`;
-  const r = await fetch(url, { headers: ghHeaders() });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error(`GitHub GET ${path}: ${r.status}`);
-  const d = await r.json();
-  fileSha[path] = d.sha;
-  const content = JSON.parse(atob(d.content.replace(/\n/g,'')));
-  return content;
-}
-
-async function ghSaveFile(path, data, msg) {
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`;
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-  const body = { message: msg || `Aggiorna ${path}`, content };
-  if (fileSha[path]) body.sha = fileSha[path];
-  const r = await fetch(url, { method:'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
-  if (!r.ok) { const e = await r.text(); throw new Error(`GitHub PUT ${path}: ${r.status} ${e}`); }
-  const d = await r.json();
-  fileSha[path] = d.content.sha;
-  return d;
-}
-
-async function ghEnsureFile(path, defaultData) {
-  const existing = await ghGetFile(path);
-  if (existing !== null) return existing;
-  await ghSaveFile(path, defaultData, `Inizializza ${path}`);
-  return defaultData;
-}
-
-// Percorsi dati nel repository
-const PATH_CONFIG    = 'data/config.json';     // array utenti con hash
-const PATH_FERIE     = 'data/ferie.json';       // { "NOME": { "2025": ["2025-07-01",...] } }
-const PATH_RICHIESTE = 'data/richieste.json';   // array di richieste
-
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    UTILITÀ
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+═══════════════════════════════════════════════════════════════════ */
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-
-function pwdTemp(nomeCompleto) {
-  const parti = nomeCompleto.trim().split(/\s+/);
-  const primo = parti[0][0].toUpperCase() + parti[0].slice(1).toLowerCase();
-  const iniziale = parti[parti.length-1][0].toUpperCase();
-  return `${primo}${iniziale}${new Date().getFullYear()}`;
+function pwdTemp(nome){
+  const p=nome.trim().split(/\s+/);
+  return p[0][0].toUpperCase()+p[0].slice(1).toLowerCase()+p[p.length-1][0].toUpperCase()+new Date().getFullYear();
 }
-
-function toast(msg, tipo='verde') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast ${tipo} show`;
-  setTimeout(()=>el.classList.remove('show'), 2800);
+function toast(msg,tipo='verde'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast ${tipo} show`;
+  setTimeout(()=>el.classList.remove('show'),2800);
 }
-
-function apriModal(id)  { document.getElementById(id).classList.add('open'); }
-function chiudiModal(id){ document.getElementById(id).classList.remove('open'); }
-
-function togglePwd(id, btn) {
-  const el = document.getElementById(id);
-  el.type = el.type === 'password' ? 'text' : 'password';
-  btn.textContent = el.type === 'password' ? '👁' : '🙈';
+function apriModal(id){document.getElementById(id).classList.add('open');}
+function chiudiModal(id){document.getElementById(id).classList.remove('open');}
+function togglePwd(id,btn){
+  const el=document.getElementById(id);
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'👁':'🙈';
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SETUP & LOGIN
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-async function init() {
-  GH_OWNER = localStorage.getItem('gh_owner') || '';
-  GH_REPO  = localStorage.getItem('gh_repo')  || '';
-  GH_TOKEN = localStorage.getItem('gh_token') || '';
-  if (!GH_OWNER || !GH_TOKEN) {
-    document.getElementById('setupScreen').classList.remove('hidden');
-    return;
-  }
-  await caricaTeam();
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function isoToDate(s){const[y,m,g]=s.split('-');return new Date(+y,+m-1,+g);}
+function getISOWeek(d){
+  const t=new Date(d);t.setHours(0,0,0,0);t.setDate(t.getDate()+4-(t.getDay()||7));
+  return Math.ceil((((t-new Date(t.getFullYear(),0,1))/86400000)+1)/7);
 }
-
-async function salvaSetup() {
-  const codice = document.getElementById('setupToken').value.trim();
-  const msg    = document.getElementById('setupMsg');
-  msg.textContent = '';
-  if (!codice) { msg.textContent = 'Inserisci il codice di attivazione.'; return; }
-  msg.textContent = 'Verifica in corso…';
-
-  try {
-    // Il codice è base64 di "owner:repo:token"
-    const decoded = atob(codice);
-    const parts   = decoded.split(':');
-    if (parts.length < 3) throw new Error('Codice non valido');
-    const owner = parts[0];
-    const repo  = parts[1];
-    const token = parts.slice(2).join(':'); // il token può contenere ":"
-
-    GH_OWNER = owner; GH_REPO = repo; GH_TOKEN = token;
-    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: ghHeaders() });
-    if (!r.ok) throw new Error(`Codice non valido o scaduto (${r.status})`);
-
-    localStorage.setItem('gh_owner', owner);
-    localStorage.setItem('gh_repo',  repo);
-    localStorage.setItem('gh_token', token);
-    document.getElementById('setupScreen').classList.add('hidden');
-    await caricaTeam();
-  } catch(e) {
-    msg.textContent = '❌ ' + e.message;
-    GH_OWNER = GH_REPO = GH_TOKEN = '';
-  }
+function pasqua(anno){
+  const a=anno%19,b=Math.floor(anno/100),c=anno%100,d=Math.floor(b/4),e=b%4,
+    f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,
+    i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+    mese=Math.floor((h+l-7*m+114)/31),giorno=((h+l-7*m+114)%31)+1;
+  return new Date(anno,mese-1,giorno);
 }
-
-async function caricaTeam() {
-  apriModal('loginOverlay');
-  try {
-    // Carica config dal repository (file data/config.json)
-    const config = await ghGetFile(PATH_CONFIG);
-    if (!config || !config.length) {
-      document.getElementById('loginMsg').textContent = '❌ File config.json non trovato nel repository. Carica i file JSON nella cartella data/.';
-      return;
-    }
-    teamData = config;
-
-    const sel = document.getElementById('loginNome');
-    sel.innerHTML = '<option value="">— seleziona —</option>';
-    [...teamData].sort((a,b)=>a.Title.localeCompare(b.Title))
-      .forEach(m => sel.insertAdjacentHTML('beforeend', `<option value="${m.id}">${m.Title}</option>`));
-  } catch(e) {
-    document.getElementById('loginMsg').textContent = '❌ Errore connessione GitHub: ' + e.message;
-  }
-}
-
-async function doLogin() {
-  const sel = document.getElementById('loginNome');
-  const pwd = document.getElementById('loginPwd').value;
-  const msg = document.getElementById('loginMsg');
-  msg.textContent = '';
-
-  if (!sel.value) { msg.textContent = 'Seleziona il tuo nome.'; return; }
-  if (!pwd)        { msg.textContent = 'Inserisci la password.'; return; }
-
-  const membro = teamData.find(m => m.id == sel.value);
-  if (!membro) return;
-
-  const hPwd = await sha256(pwd);
-  let ok = false;
-  primAccesso = false;
-
-  if (membro.PasswordHash === 'TEMP') {
-    ok = hPwd === membro.PasswordTemp;
-    if (ok) primAccesso = true;
-  } else {
-    ok = hPwd === membro.PasswordHash;
-  }
-
-  if (!ok) {
-    msg.textContent = 'Password errata.';
-    document.getElementById('loginPwd').value = '';
-    return;
-  }
-
-  utenteCorrente = membro;
-  chiudiModal('loginOverlay');
-  document.getElementById('app').classList.remove('hidden');
-
-  document.getElementById('hdrNome').textContent = membro.Title;
-  const badge = document.getElementById('hdrBadge');
-  badge.textContent = membro.Ruolo;
-  badge.className = `badge-ruolo badge-${membro.Ruolo}`;
-
-  if (membro.Ruolo !== 'risorsa') {
-    document.getElementById('toolbarManager').classList.remove('hidden');
-  } else {
-    document.getElementById('toolbarRisorsa').classList.remove('hidden');
-  }
-
-  document.getElementById('annoInput').value = new Date().getFullYear();
-  await caricaFerie();
-  disegnaCal();
-  aggiornaStatobar();
-  await caricaStatiRichieste(new Date().getFullYear());
-  await controllaNotifiche();
-
-  if (primAccesso) setTimeout(() => apriCambioPassword(true), 400);
-}
-
-function logout() {
-  utenteCorrente = null; ferieLocali.clear();
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('loginPwd').value = '';
-  document.getElementById('loginMsg').textContent = '';
-  apriModal('loginOverlay');
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FERIE - CARICA / SALVA (GitHub JSON)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-async function caricaFerie() {
-  const anno = String(document.getElementById('annoInput').value);
-  ferieLocali.clear();
-  try {
-    const data = await ghGetFile(PATH_FERIE);
-    if (data && data[utenteCorrente.Title] && data[utenteCorrente.Title][anno]) {
-      data[utenteCorrente.Title][anno].forEach(g => ferieLocali.add(g));
-    }
-  } catch(e) { console.error('caricaFerie:', e); }
-}
-
-async function salvaFerie() {
-  const anno = String(document.getElementById('annoInput').value);
-  toast('Salvataggio…', 'verde');
-  try {
-    const data = (await ghGetFile(PATH_FERIE)) || {};
-    if (!data[utenteCorrente.Title]) data[utenteCorrente.Title] = {};
-    data[utenteCorrente.Title][anno] = [...ferieLocali].filter(g => g.startsWith(anno));
-    await ghSaveFile(PATH_FERIE, data, `Ferie ${utenteCorrente.Title} ${anno}`);
-    toast('✓ Salvato!', 'verde');
-  } catch(e) { toast('Errore salvataggio: ' + e.message, 'rosso'); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CALENDARIO - RENDERING (invariato)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function pasqua(anno) {
-  const a=anno%19, b=Math.floor(anno/100), c=anno%100,
-        d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25),
-        g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30,
-        i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7,
-        m=Math.floor((a+11*h+22*l)/451),
-        mese=Math.floor((h+l-7*m+114)/31),
-        giorno=((h+l-7*m+114)%31)+1;
-  return new Date(anno, mese-1, giorno);
-}
-
-function festivita(anno) {
-  const p = pasqua(anno);
-  const lp = new Date(p); lp.setDate(p.getDate()+1);
-  const map = {};
-  [[1,1,'Capodanno'],[1,6,'Epifania'],[4,25,'Liberazione'],
-   [5,1,'Lavoratori'],[6,2,'Repubblica'],[8,15,'Ferragosto'],
-   [11,1,'Ognissanti'],[12,8,'Immacolata'],[12,25,'Natale'],[12,26,'S. Stefano']]
-  .forEach(([m,g,n]) => map[`${anno}-${String(m).padStart(2,'0')}-${String(g).padStart(2,'0')}`]=n);
-  map[isoDate(p)] = 'Pasqua';
-  map[isoDate(lp)] = 'Lunedì Pasqua';
+function festivita(anno){
+  const p=pasqua(anno),lp=new Date(p);lp.setDate(p.getDate()+1);
+  const map={};
+  [[1,1,'Capodanno'],[1,6,'Epifania'],[4,25,'Liberazione'],[5,1,'Lavoratori'],
+   [6,2,'Repubblica'],[8,15,'Ferragosto'],[11,1,'Ognissanti'],[12,8,'Immacolata'],
+   [12,25,'Natale'],[12,26,'S.Stefano']]
+  .forEach(([m,g,n])=>map[`${anno}-${String(m).padStart(2,'0')}-${String(g).padStart(2,'0')}`]=n);
+  map[isoDate(p)]='Pasqua'; map[isoDate(lp)]='Lunedì Pasqua';
   return map;
 }
 
-function isoDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/* ═══════════════════════════════════════════════════════════════════
+   SETUP & LOGIN
+═══════════════════════════════════════════════════════════════════ */
+async function init(){
+  GH_OWNER=localStorage.getItem('gh_owner')||'';
+  GH_REPO =localStorage.getItem('gh_repo') ||'';
+  GH_TOKEN=localStorage.getItem('gh_token')||'';
+  if(!GH_OWNER||!GH_TOKEN){document.getElementById('setupScreen').classList.remove('hidden');return;}
+  await caricaTeam();
 }
-function isoToDate(s) { const [y,m,g]=s.split('-'); return new Date(+y,+m-1,+g); }
+async function salvaSetup(){
+  const codice=document.getElementById('setupToken').value.trim();
+  const msg=document.getElementById('setupMsg');
+  msg.textContent='';
+  if(!codice){msg.textContent='Inserisci il codice.';return;}
+  msg.textContent='Verifica…';
+  try{
+    const decoded=atob(codice),parts=decoded.split(':');
+    if(parts.length<3)throw new Error('Codice non valido');
+    const owner=parts[0],repo=parts[1],token=parts.slice(2).join(':');
+    GH_OWNER=owner;GH_REPO=repo;GH_TOKEN=token;
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}`,{headers:ghHeaders()});
+    if(!r.ok)throw new Error(`Codice non valido (${r.status})`);
+    localStorage.setItem('gh_owner',owner);localStorage.setItem('gh_repo',repo);localStorage.setItem('gh_token',token);
+    document.getElementById('setupScreen').classList.add('hidden');
+    await caricaTeam();
+  }catch(e){msg.textContent='❌ '+e.message;GH_OWNER=GH_REPO=GH_TOKEN='';}
+}
+async function caricaTeam(){
+  apriModal('loginOverlay');
+  try{
+    const config=await ghGetFile(PATH_CONFIG);
+    if(!config||!config.length){
+      document.getElementById('loginMsg').textContent='❌ config.json non trovato. Carica i file JSON nella cartella data/.';return;
+    }
+    teamData=config;
+    const sel=document.getElementById('loginNome');
+    sel.innerHTML='<option value="">— seleziona —</option>';
+    [...teamData].sort((a,b)=>a.Title.localeCompare(b.Title))
+      .forEach(m=>sel.insertAdjacentHTML('beforeend',`<option value="${m.id}">${m.Title}</option>`));
+  }catch(e){document.getElementById('loginMsg').textContent='❌ Errore GitHub: '+e.message;}
+}
+async function doLogin(){
+  const sel=document.getElementById('loginNome'),pwd=document.getElementById('loginPwd').value;
+  const msg=document.getElementById('loginMsg'); msg.textContent='';
+  if(!sel.value){msg.textContent='Seleziona il nome.';return;}
+  if(!pwd){msg.textContent='Inserisci la password.';return;}
+  const membro=teamData.find(m=>m.id==sel.value);if(!membro)return;
+  const hPwd=await sha256(pwd);
+  let ok=false;primAccesso=false;
+  if(membro.PasswordHash==='TEMP'){ok=hPwd===membro.PasswordTemp;if(ok)primAccesso=true;}
+  else{ok=hPwd===membro.PasswordHash;}
+  if(!ok){msg.textContent='Password errata.';document.getElementById('loginPwd').value='';return;}
+  utenteCorrente=membro;chiudiModal('loginOverlay');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('hdrNome').textContent=membro.Title;
+  const badge=document.getElementById('hdrBadge');
+  badge.textContent=membro.Ruolo;badge.className=`badge-ruolo badge-${membro.Ruolo}`;
+  if(membro.Ruolo!=='risorsa')document.getElementById('toolbarManager').classList.remove('hidden');
+  else document.getElementById('toolbarRisorsa').classList.remove('hidden');
+  document.getElementById('annoInput').value=new Date().getFullYear();
+  await caricaFerie();disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  await caricaStatiRichieste(new Date().getFullYear());
+  await controllaNotifiche();
+  if(primAccesso)setTimeout(()=>apriCambioPassword(true),400);
+}
+function logout(){
+  utenteCorrente=null;ferieLocali.clear();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('toolbarManager').classList.add('hidden');
+  document.getElementById('toolbarRisorsa').classList.add('hidden');
+  document.getElementById('loginPwd').value='';
+  document.getElementById('loginMsg').textContent='';
+  apriModal('loginOverlay');
+}
 
-function aggiornaStatobar() {
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const fx = festivita(anno);
-  let appr=0, sel=0;
-  for (const g of ferieLocali) {
-    if (!g.startsWith(anno)) continue;
-    sel++;
-    const d = isoToDate(g);
-    if (d.getDay()>0 && d.getDay()<6 && !fx[g]) appr++;
+/* ═══════════════════════════════════════════════════════════════════
+   FERIE CARICA/SALVA
+═══════════════════════════════════════════════════════════════════ */
+async function caricaFerie(){
+  const anno=String(document.getElementById('annoInput').value);ferieLocali.clear();
+  try{
+    const data=await ghGetFile(PATH_FERIE);
+    if(data&&data[utenteCorrente.Title]&&data[utenteCorrente.Title][anno])
+      data[utenteCorrente.Title][anno].forEach(g=>ferieLocali.add(g));
+  }catch(e){console.error('caricaFerie:',e);}
+}
+async function salvaFerie(){
+  const anno=String(document.getElementById('annoInput').value);
+  toast('Salvataggio…','verde');
+  try{
+    const data=(await ghGetFile(PATH_FERIE))||{};
+    if(!data[utenteCorrente.Title])data[utenteCorrente.Title]={};
+    data[utenteCorrente.Title][anno]=[...ferieLocali].filter(g=>g.startsWith(anno));
+    await ghSaveFile(PATH_FERIE,data,`Ferie ${utenteCorrente.Title} ${anno}`);
+    toast('✓ Salvato!','verde');
+  }catch(e){toast('Errore: '+e.message,'rosso');}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CALENDARIO
+═══════════════════════════════════════════════════════════════════ */
+function aggiornaStatobar(){
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  let appr=0,sel=0;
+  for(const g of ferieLocali){
+    if(!g.startsWith(anno))continue;sel++;
+    const d=isoToDate(g);if(d.getDay()>0&&d.getDay()<6&&!fx[g])appr++;
   }
-  document.getElementById('statAnno').textContent = anno;
-  document.getElementById('statAppr').textContent = appr;
-  document.getElementById('statSel').textContent  = sel;
+  document.getElementById('statAnno').textContent=anno;
+  document.getElementById('statAppr').textContent=appr;
+  document.getElementById('statSel').textContent=sel;
 }
 
-async function ridisegna() {
-  await caricaFerie();
-  disegnaCal();
-  aggiornaStatobar();
+function aggiornaSidebar(){
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const body=document.getElementById('riepilogoMensileBody');
+  body.innerHTML='';
+  for(let m=1;m<=12;m++){
+    const totalGiorni=new Date(anno,m,0).getDate();
+    let ferie=0,fest=0,wkd=0;
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,m-1,g),iso=isoDate(d);
+      if(fx[iso])fest++;
+      else if(d.getDay()===0||d.getDay()===6)wkd++;
+      else if(ferieLocali.has(iso))ferie++;
+    }
+    const row=document.createElement('div');row.className='riepilogo-mese';
+    row.innerHTML=`<span class="nm">${MESI[m-1].substring(0,3)}</span>`+
+      `<span class="nf">${ferie>0?ferie+'f':''}</span>`+
+      `<span class="nx">${fest}fest ${wkd}wkd</span>`;
+    body.appendChild(row);
+  }
+}
+
+async function ridisegna(){
+  await caricaFerie();disegnaCal();aggiornaStatobar();aggiornaSidebar();
   await caricaStatiRichieste(parseInt(document.getElementById('annoInput').value));
 }
 
-function getISOWeek(d) {
-  const tmp = new Date(d); tmp.setHours(0,0,0,0);
-  tmp.setDate(tmp.getDate()+4-(tmp.getDay()||7));
-  const y = new Date(tmp.getFullYear(),0,1);
-  return Math.ceil((((tmp-y)/86400000)+1)/7);
-}
-
-function disegnaCal() {
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const oggi = isoDate(new Date());
-  const fx = festivita(anno);
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-
-  for (let mese=1; mese<=12; mese++) {
-    const card = document.createElement('div'); card.className = 'mese-card';
-    const hdr = document.createElement('div'); hdr.className = 'mese-hdr';
-    hdr.innerHTML = `<span>${MESI[mese-1].toUpperCase()}  ${anno}</span>`;
+function disegnaCal(){
+  const anno=parseInt(document.getElementById('annoInput').value),oggi=isoDate(new Date()),fx=festivita(anno);
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  for(let mese=1;mese<=12;mese++){
+    const card=document.createElement('div');card.className='mese-card';
+    const hdr=document.createElement('div');hdr.className='mese-hdr';
+    hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}  ${anno}</span>`;
     card.appendChild(hdr);
-
-    const mgrid = document.createElement('div'); mgrid.className = 'mese-grid';
-    const hwk = document.createElement('div'); hwk.className='giorno-hdr nw'; hwk.textContent='W'; mgrid.appendChild(hwk);
-    GIORNI.forEach((g,i) => {
-      const h = document.createElement('div');
-      h.className = 'giorno-hdr' + (i>=5?' wkd':''); h.textContent=g; mgrid.appendChild(h);
-    });
-
-    const primoGiorno = new Date(anno, mese-1, 1);
-    const totalGiorni = new Date(anno, mese, 0).getDate();
-    let dow = (primoGiorno.getDay()+6)%7;
-
-    const righe=[]; let riga={offset:dow, giorni:[], nw:getISOWeek(primoGiorno)};
-    for (let g=1; g<=totalGiorni; g++) {
-      const d = new Date(anno, mese-1, g);
-      const iso = isoDate(d);
-      const dw = (d.getDay()+6)%7;
-      if (dw===0 && g>1) { righe.push(riga); riga={offset:0,giorni:[],nw:getISOWeek(d)}; }
-
-      const el = document.createElement('div');
-      el.textContent = g;
-      let cls = 'giorno';
-      if (fx[iso])                     { cls += ' festivo-nat'; }
-      else if (d.getDay()===0||d.getDay()===6) { cls += ' weekend'; }
-      else {
-        el.onclick = () => toggleGiorno(iso);
-      }
-      if (iso===oggi)             cls += ' oggi';
-      if (ferieLocali.has(iso))   cls += ' ferie';
-      el.className = cls;
-      el.dataset.iso = iso;
-      if (fx[iso]) el.title = fx[iso];
+    const mgrid=document.createElement('div');mgrid.className='mese-grid';
+    const hwk=document.createElement('div');hwk.className='giorno-hdr nw';hwk.textContent='W';mgrid.appendChild(hwk);
+    GIORNI.forEach((g,i)=>{const h=document.createElement('div');h.className='giorno-hdr'+(i>=5?' wkd':'');h.textContent=g;mgrid.appendChild(h);});
+    const primoGiorno=new Date(anno,mese-1,1),totalGiorni=new Date(anno,mese,0).getDate();
+    let dow=(primoGiorno.getDay()+6)%7;
+    const righe=[];let riga={offset:dow,giorni:[],nw:getISOWeek(primoGiorno)};
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
+      if(dw===0&&g>1){righe.push(riga);riga={offset:0,giorni:[],nw:getISOWeek(d)};}
+      const el=document.createElement('div');el.textContent=g;
+      let cls='giorno';
+      if(fx[iso])cls+=' festivo-nat';
+      else if(d.getDay()===0||d.getDay()===6)cls+=' weekend';
+      else el.onclick=()=>toggleGiorno(iso);
+      if(iso===oggi)cls+=' oggi';
+      if(ferieLocali.has(iso))cls+=' ferie';
+      el.className=cls;el.dataset.iso=iso;
+      if(fx[iso])el.title=fx[iso];
       riga.giorni.push(el);
     }
     righe.push(riga);
-
-    righe.forEach(r => {
-      const nwEl = document.createElement('div'); nwEl.className='nw-cell'; nwEl.textContent=r.nw; mgrid.appendChild(nwEl);
-      for (let p=0;p<(r.offset||0);p++) { const v=document.createElement('div'); v.className='giorno vuoto'; mgrid.appendChild(v); }
-      r.giorni.forEach(el => mgrid.appendChild(el));
+    righe.forEach(r=>{
+      const nw=document.createElement('div');nw.className='nw-cell';nw.textContent=r.nw;mgrid.appendChild(nw);
+      for(let p=0;p<(r.offset||0);p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
+      r.giorni.forEach(el=>mgrid.appendChild(el));
       const tot=(r.offset||0)+r.giorni.length;
-      for (let p=tot;p<7;p++) { const v=document.createElement('div'); v.className='giorno vuoto'; mgrid.appendChild(v); }
+      for(let p=tot;p<7;p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
     });
-
-    card.appendChild(mgrid); grid.appendChild(card);
+    card.appendChild(mgrid);grid.appendChild(card);
   }
 }
 
-function toggleGiorno(iso) {
-  if (rangeMode) {
-    if (!rangeStart) {
-      rangeStart = iso;
+function toggleGiorno(iso){
+  if(rangeMode){
+    if(!rangeStart){
+      rangeStart=iso;
       document.querySelector(`.giorno[data-iso="${iso}"]`)?.classList.add('range-start');
-      toast('Seleziona la data di fine (ESC per annullare)', 'blu' );
-    } else {
-      const d1 = isoToDate(rangeStart < iso ? rangeStart : iso);
-      const d2 = isoToDate(rangeStart < iso ? iso : rangeStart);
-      const anno = parseInt(document.getElementById('annoInput').value);
-      const fx = festivita(anno);
-      for (let d=new Date(d1); d<=d2; d.setDate(d.getDate()+1)) {
-        const s = isoDate(d);
-        if (d.getDay()!==0 && d.getDay()!==6 && !fx[s] && s.startsWith(anno)) ferieLocali.add(s);
+      toast('Seleziona la data di fine (ESC per annullare)');
+    }else{
+      const d1=isoToDate(rangeStart<iso?rangeStart:iso),d2=isoToDate(rangeStart<iso?iso:rangeStart);
+      const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+      for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){
+        const s=isoDate(d);
+        if(d.getDay()!==0&&d.getDay()!==6&&!fx[s]&&s.startsWith(anno))ferieLocali.add(s);
       }
-      rangeStart = null;
-      attivaRange(false);
-      disegnaCal(); aggiornaStatobar();
+      rangeStart=null;attivaRange(false);disegnaCal();aggiornaStatobar();aggiornaSidebar();
     }
     return;
   }
-  const anno = String(document.getElementById('annoInput').value);
-  if (!iso.startsWith(anno)) return;
-  if (ferieLocali.has(iso)) ferieLocali.delete(iso);
-  else ferieLocali.add(iso);
-  const el = document.querySelector(`.giorno[data-iso="${iso}"]`);
-  if (el) { el.classList.toggle('ferie', ferieLocali.has(iso)); }
-  aggiornaStatobar();
+  const anno=String(document.getElementById('annoInput').value);
+  if(!iso.startsWith(anno))return;
+  if(ferieLocali.has(iso))ferieLocali.delete(iso);else ferieLocali.add(iso);
+  const el=document.querySelector(`.giorno[data-iso="${iso}"]`);
+  if(el)el.classList.toggle('ferie',ferieLocali.has(iso));
+  aggiornaStatobar();aggiornaSidebar();
 }
 
-function attivaRange(stato) {
-  rangeMode = stato; rangeStart = null;
-  const btn = document.getElementById('btnRange');
-  btn.classList.toggle('active', stato);
-  if (!stato) document.querySelectorAll('.range-start').forEach(e=>e.classList.remove('range-start'));
+function toggleRange(){attivaRange(!rangeMode);}
+function attivaRange(stato){
+  rangeMode=stato;rangeStart=null;
+  document.getElementById('btnRange').classList.toggle('active',stato);
+  if(!stato)document.querySelectorAll('.range-start').forEach(e=>e.classList.remove('range-start'));
 }
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&rangeMode)attivaRange(false);});
 
-document.addEventListener('keydown', e => { if (e.key==='Escape' && rangeMode) attivaRange(false); });
-
-function aggiungiPeriodo() {
+/* ═══════════════════════════════════════════════════════════════════
+   PERIODO / PULIZIA
+═══════════════════════════════════════════════════════════════════ */
+function apriPeriodo(){
   document.getElementById('periodoIni').value='';
   document.getElementById('periodoFin').value='';
   document.getElementById('periodoMsg').textContent='';
   apriModal('overlayPeriodo');
 }
-
-function confermaPeriodo() {
-  const ini = document.getElementById('periodoIni').value;
-  const fin = document.getElementById('periodoFin').value;
-  const msg = document.getElementById('periodoMsg');
-  if (!ini||!fin) { msg.textContent='Compila entrambe le date.'; return; }
-  if (ini>fin)    { msg.textContent='La data inizio deve essere prima della fine.'; return; }
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const fx = festivita(anno);
-  const d1=isoToDate(ini), d2=isoToDate(fin);
-  for (let d=new Date(d1); d<=d2; d.setDate(d.getDate()+1)) {
-    const s=isoDate(d);
-    if (d.getDay()!==0&&d.getDay()!==6&&!fx[s]) ferieLocali.add(s);
+function confermaPeriodo(){
+  const ini=document.getElementById('periodoIni').value,fin=document.getElementById('periodoFin').value;
+  const msg=document.getElementById('periodoMsg');
+  if(!ini||!fin){msg.textContent='Compila entrambe le date.';return;}
+  if(ini>fin){msg.textContent='La data inizio deve essere prima della fine.';return;}
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const d1=isoToDate(ini),d2=isoToDate(fin);
+  for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){
+    const s=isoDate(d);if(d.getDay()!==0&&d.getDay()!==6&&!fx[s])ferieLocali.add(s);
   }
-  chiudiModal('overlayPeriodo');
-  disegnaCal(); aggiornaStatobar();
+  chiudiModal('overlayPeriodo');disegnaCal();aggiornaStatobar();aggiornaSidebar();
+}
+function rimuoviFerie(){
+  const anno=String(document.getElementById('annoInput').value);
+  if(!confirm(`Rimuovere tutte le ferie del ${anno}?`))return;
+  for(const g of[...ferieLocali])if(g.startsWith(anno))ferieLocali.delete(g);
+  disegnaCal();aggiornaStatobar();aggiornaSidebar();
 }
 
-function pulisciAnno() {
-  const anno = String(document.getElementById('annoInput').value);
-  if (!confirm(`Rimuovere tutte le ferie del ${anno}?`)) return;
-  for (const g of [...ferieLocali]) { if (g.startsWith(anno)) ferieLocali.delete(g); }
-  disegnaCal(); aggiornaStatobar();
+/* ═══════════════════════════════════════════════════════════════════
+   STAMPA PDF PERSONALE
+═══════════════════════════════════════════════════════════════════ */
+function stampaPDF(){
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const nome=utenteCorrente.Title;
+  const ferieAnno=[...ferieLocali].filter(g=>g.startsWith(anno)).sort();
+  const totFerie=ferieAnno.filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6&&!fx[g];}).length;
+
+  // Raggruppa periodi consecutivi
+  function raggruppa(giorni){
+    if(!giorni.length)return[];
+    const periodi=[];let inizio=giorni[0],fine=giorni[0];
+    for(let i=1;i<giorni.length;i++){
+      const prev=isoToDate(giorni[i-1]),curr=isoToDate(giorni[i]);
+      const diffMs=curr-prev,diffGg=diffMs/(1000*60*60*24);
+      // considera consecutivi se entro 3 giorni (salta weekend/festività)
+      let gg=new Date(prev);let cont=false;
+      for(let k=1;k<=diffGg;k++){gg=new Date(prev);gg.setDate(prev.getDate()+k);
+        if(isoDate(gg)===giorni[i]){cont=true;break;}}
+      if(diffGg<=3)fine=giorni[i];
+      else{periodi.push({da:inizio,a:fine});inizio=giorni[i];fine=giorni[i];}
+    }
+    periodi.push({da:inizio,a:fine});return periodi;
+  }
+  const periodi=raggruppa(ferieAnno);
+
+  // Calcola dettaglio mensile
+  const perMese={};
+  ferieAnno.forEach(g=>{
+    const m=parseInt(g.split('-')[1])-1;
+    if(!perMese[m])perMese[m]={ferie:[],fest:0,wkd:0,lav:0};
+    const d=isoToDate(g);
+    if(fx[g])perMese[m].fest++;
+    else if(d.getDay()===0||d.getDay()===6)perMese[m].wkd++;
+    else{perMese[m].ferie.push(g);perMese[m].lav++;}
+  });
+  // aggiungi anche festività/weekend di tutti i mesi
+  for(let m=0;m<12;m++){
+    if(!perMese[m])perMese[m]={ferie:[],fest:0,wkd:0,lav:0};
+    const totalGiorni=new Date(anno,m+1,0).getDate();
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,m,g),iso=isoDate(d);
+      if(fx[iso]&&!ferieAnno.includes(iso))perMese[m].fest++;
+      else if((d.getDay()===0||d.getDay()===6)&&!ferieAnno.includes(iso))perMese[m].wkd++;
+    }
+  }
+
+  let html=`<style>
+    body{font-family:Arial,sans-serif;font-size:10px;color:#1E293B;}
+    h1{font-size:18px;color:#2563EB;margin:0 0 4px}
+    h2{font-size:12px;color:#2563EB;margin:14px 0 4px;border-bottom:1px solid #CBD5E1;padding-bottom:2px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+    .mese{border:1px solid #CBD5E1;border-radius:6px;overflow:hidden}
+    .mese-h{background:#EFF6FF;padding:4px 6px;font-weight:700;font-size:9px;border-left:3px solid #2563EB}
+    .cal{display:grid;grid-template-columns:repeat(8,1fr);padding:3px;gap:1px}
+    .gh{text-align:center;font-size:8px;font-weight:700;color:#2563EB;padding:1px 0}
+    .gh.wk{color:#EF4444}.gh.nw{color:#94A3B8;font-size:7px}
+    .gd{text-align:center;font-size:8px;padding:2px 0;border-radius:3px}
+    .gd.ferie{background:#16A34A;color:#fff;font-weight:700}
+    .gd.fest{background:#FEF2F2;color:#EF4444;font-weight:700}
+    .gd.wkd{background:#F0F9FF;color:#64748B}
+    .gd.oggi{background:#F59E0B;color:#fff;border-radius:50%}
+    .nw{text-align:center;font-size:7px;color:#94A3B8}
+    .riepilogo{border-collapse:collapse;width:100%;margin-top:6px}
+    .riepilogo th{background:#2563EB;color:#fff;padding:4px 8px;text-align:left;font-size:9px}
+    .riepilogo td{padding:4px 8px;border-bottom:1px solid #F1F5F9;font-size:9px}
+    .riepilogo tr:nth-child(even) td{background:#F8FAFC}
+    .stat-box{display:inline-block;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:6px 14px;margin-right:8px;text-align:center}
+    .stat-box .n{font-size:22px;font-weight:700;color:#2563EB}
+    .stat-box .l{font-size:9px;color:#64748B}
+    .periodo-tag{display:inline-block;background:#DCFCE7;border:1px solid #86EFAC;border-radius:4px;padding:2px 8px;margin:2px;font-size:9px}
+    @media print{@page{margin:10mm}}
+  </style>
+  <h1>📅 Calendario Ferie ${anno}</h1>
+  <p style="color:#64748B;font-size:11px;margin-bottom:10px">${nome} — Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
+  <div style="margin-bottom:12px">
+    <div class="stat-box"><div class="n">${totFerie}</div><div class="l">Giorni ferie</div></div>
+    <div class="stat-box"><div class="n">${periodi.length}</div><div class="l">Periodi</div></div>
+  </div>`;
+
+  // Griglia 12 mesi
+  html+=`<h2>Calendario ${anno}</h2><div class="grid">`;
+  const oggiIso=isoDate(new Date());
+  for(let mese=1;mese<=12;mese++){
+    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}</div><div class="cal">`;
+    html+=`<div class="gh nw">W</div>`;
+    GIORNI.forEach((g,i)=>html+=`<div class="gh${i>=5?' wk':''}">${g}</div>`);
+    const primoGiorno=new Date(anno,mese-1,1),totalGiorni=new Date(anno,mese,0).getDate();
+    let dow=(primoGiorno.getDay()+6)%7;
+    const righe=[];let riga={offset:dow,giorni:[],nw:getISOWeek(primoGiorno)};
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
+      if(dw===0&&g>1){righe.push(riga);riga={offset:0,giorni:[],nw:getISOWeek(d)};}
+      let cls='gd';
+      if(fx[iso])cls+=' fest';
+      else if(d.getDay()===0||d.getDay()===6)cls+=' wkd';
+      else if(ferieLocali.has(iso))cls+=' ferie';
+      if(iso===oggiIso)cls+=' oggi';
+      riga.giorni.push(`<div class="${cls}">${g}</div>`);
+    }
+    righe.push(riga);
+    righe.forEach(r=>{
+      html+=`<div class="nw">${r.nw}</div>`;
+      for(let p=0;p<(r.offset||0);p++)html+='<div class="gd"></div>';
+      r.giorni.forEach(el=>html+=el);
+      const tot=(r.offset||0)+r.giorni.length;
+      for(let p=tot;p<7;p++)html+='<div class="gd"></div>';
+    });
+    html+='</div></div>';
+  }
+  html+='</div>';
+
+  // Periodi ferie
+  if(periodi.length){
+    html+=`<h2>Periodi ferie</h2>`;
+    periodi.forEach((p,i)=>{
+      const da=isoToDate(p.da),a=isoToDate(p.a);
+      const gg=[...ferieLocali].filter(g=>g>=p.da&&g<=p.a&&!fx[g]).length;
+      html+=`<span class="periodo-tag">P${i+1}: ${da.toLocaleDateString('it-IT')} → ${a.toLocaleDateString('it-IT')} (${gg}gg)</span>`;
+    });
+  }
+
+  // Tabella riepilogo mensile
+  html+=`<h2>Riepilogo mensile</h2>
+  <table class="riepilogo">
+    <tr><th>Mese</th><th>Giorni ferie</th><th>Festività</th><th>Weekend</th><th>Note</th></tr>`;
+  for(let m=0;m<12;m++){
+    const pm=perMese[m]||{lav:0,fest:0,wkd:0};
+    html+=`<tr><td>${MESI[m]}</td><td>${pm.lav||0}</td><td>${pm.fest||0}</td><td>${pm.wkd||0}</td>
+      <td>${(pm.ferie||[]).slice(0,5).map(g=>isoToDate(g).getDate()+' '+MESI[parseInt(g.split('-')[1])-1].substring(0,3)).join(', ')}</td></tr>`;
+  }
+  html+='</table>';
+
+  apriStampa(html);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RICHIESTE (GitHub JSON)
-   ═══════════════════════════════════════════════════════════════════════════ */
+function apriStampa(html){
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Stampa</title></head><body>${html}
+    <script>window.onload=()=>window.print();<\/script></body></html>`);
+  w.document.close();
+}
 
-async function caricaStatiRichieste(anno) {
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    const mie = reqs.filter(r => r.Dipendente===utenteCorrente.Title && r.Anno==anno);
-    mie.forEach(req => {
-      if (req.Stato==='in_attesa'||req.Stato==='rifiutata') {
-        const giorni = req.Giorni || [];
-        giorni.forEach(g => {
-          const el = document.querySelector(`.giorno[data-iso="${g}"]`);
-          if (el) {
-            el.classList.remove('ferie');
-            el.classList.add(req.Stato==='in_attesa'?'attesa':'rifiutata');
-          }
+/* ═══════════════════════════════════════════════════════════════════
+   RICHIESTE
+═══════════════════════════════════════════════════════════════════ */
+async function caricaStatiRichieste(anno){
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const mie=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno);
+    mie.forEach(req=>{
+      if(req.Stato==='in_attesa'||req.Stato==='rifiutata'){
+        (req.Giorni||[]).forEach(g=>{
+          const el=document.querySelector(`.giorno[data-iso="${g}"]`);
+          if(el){el.classList.remove('ferie');el.classList.add(req.Stato==='in_attesa'?'attesa':'rifiutata');}
         });
       }
     });
-  } catch(e) { console.error('caricaStati:', e); }
+  }catch(e){console.error('caricaStati:',e);}
 }
-
-function apriRichiesta() {
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const fx = festivita(anno);
-  const giorni = [...ferieLocali].filter(g => g.startsWith(anno) && !fx[g]);
-  if (!giorni.length) { toast('Nessun giorno selezionato','rosso'); return; }
-  document.getElementById('richiestaGiorni').textContent = `${giorni.length} giorni selezionati`;
+function apriInviaRichiesta(){
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const giorni=[...ferieLocali].filter(g=>g.startsWith(anno)&&!fx[g]);
+  if(!giorni.length){toast('Nessun giorno selezionato','rosso');return;}
+  document.getElementById('richiestaGiorni').textContent=`${giorni.length} giorni selezionati`;
   document.getElementById('richiestaNote').value='';
   document.getElementById('richiestaMsg').textContent='';
   apriModal('overlayRichiesta');
 }
-
-async function confermaRichiesta() {
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const fx = festivita(anno);
-  const giorni = [...ferieLocali].filter(g=>g.startsWith(anno)&&!fx[g]).sort();
-  const note = document.getElementById('richiestaNote').value.trim();
-  const msg  = document.getElementById('richiestaMsg');
-  msg.textContent='';
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    // Rimuovi bozze precedenti stesso anno/dipendente
-    const filtered = reqs.filter(r => !(r.Dipendente===utenteCorrente.Title && r.Anno==anno && r.Stato==='bozza'));
-    const nuova = {
-      id: Date.now(),
-      Dipendente: utenteCorrente.Title,
-      Responsabile: utenteCorrente.Responsabile,
-      Anno: anno,
-      Giorni: giorni,
-      NoteRisorsa: note,
-      Stato: 'in_attesa',
-      DataInvio: new Date().toISOString(),
-      Approvatore: '',
-      DataRisposta: '',
-      MotivazioneRifiuto: '',
-      Letta: false
-    };
-    filtered.push(nuova);
-    await ghSaveFile(PATH_RICHIESTE, filtered, `Richiesta ferie ${utenteCorrente.Title} ${anno}`);
-    chiudiModal('overlayRichiesta');
-    toast('Richiesta inviata!','verde');
-    disegnaCal(); aggiornaStatobar();
-    await caricaStatiRichieste(anno);
-  } catch(e) { msg.textContent='Errore: '+e.message; }
+async function confermaRichiesta(){
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const giorni=[...ferieLocali].filter(g=>g.startsWith(anno)&&!fx[g]).sort();
+  const note=document.getElementById('richiestaNote').value.trim();
+  const msg=document.getElementById('richiestaMsg');msg.textContent='';
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const filtered=reqs.filter(r=>!(r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&r.Stato==='bozza'));
+    filtered.push({id:Date.now(),Dipendente:utenteCorrente.Title,Responsabile:utenteCorrente.Responsabile,
+      Anno:anno,Giorni:giorni,NoteRisorsa:note,Stato:'in_attesa',DataInvio:new Date().toISOString(),
+      Approvatore:'',DataRisposta:'',MotivazioneRifiuto:'',Letta:false});
+    await ghSaveFile(PATH_RICHIESTE,filtered,`Richiesta ${utenteCorrente.Title} ${anno}`);
+    chiudiModal('overlayRichiesta');toast('Richiesta inviata!','verde');
+    disegnaCal();aggiornaStatobar();await caricaStatiRichieste(anno);
+  }catch(e){msg.textContent='Errore: '+e.message;}
 }
-
-async function apriRichiesteMgr() {
-  const body = document.getElementById('richiesteListBody');
-  body.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+async function apriRichieste(){
+  const body=document.getElementById('richiesteListBody');
+  body.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
   apriModal('overlayRichiesteMgr');
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    const miei = teamData.filter(m=>m.Responsabile===utenteCorrente.Title).map(m=>m.Title);
-    const pending = reqs.filter(r=>miei.includes(r.Dipendente)&&r.Stato==='in_attesa');
-    body.innerHTML = '';
-    if (!pending.length) { body.innerHTML='<p style="color:var(--debole);text-align:center;padding:20px">Nessuna richiesta in attesa.</p>'; return; }
-    pending.forEach(req => {
-      const g = (req.Giorni||[]).slice(0,3).join(', ') + (req.Giorni.length>3?` … (+${req.Giorni.length-3})`:'');
-      const card = document.createElement('div'); card.className='richiesta-card';
-      card.innerHTML = `
-        <div class="richiesta-hdr">
-          <span class="richiesta-nome">${req.Dipendente}</span>
-          <span class="stato-badge stato-attesa">In attesa</span>
-        </div>
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const miei=teamData.filter(m=>m.Responsabile===utenteCorrente.Title).map(m=>m.Title);
+    const pending=reqs.filter(r=>miei.includes(r.Dipendente)&&r.Stato==='in_attesa');
+    body.innerHTML='';
+    if(!pending.length){body.innerHTML='<p style="color:var(--debole);text-align:center;padding:20px">Nessuna richiesta in attesa.</p>';return;}
+    pending.forEach(req=>{
+      const g=(req.Giorni||[]).slice(0,3).join(', ')+(req.Giorni.length>3?` …(+${req.Giorni.length-3})`:'');
+      const card=document.createElement('div');card.className='richiesta-card';
+      card.innerHTML=`<div class="richiesta-hdr"><span class="richiesta-nome">${req.Dipendente}</span>
+        <span class="stato-badge stato-attesa">In attesa</span></div>
         <div class="richiesta-body">
-          <div><b>Anno:</b> ${req.Anno} &nbsp;|&nbsp; <b>Giorni:</b> ${req.Giorni.length}</div>
-          <div style="margin-top:4px;color:var(--debole)">${g}</div>
-          ${req.NoteRisorsa?`<div style="margin-top:6px;font-style:italic">"${req.NoteRisorsa}"</div>`:''}
-          <div style="margin-top:10px;display:flex;gap:8px">
+          <div><b>Anno:</b> ${req.Anno} | <b>Giorni:</b> ${req.Giorni.length}</div>
+          <div style="color:var(--debole);margin-top:4px">${g}</div>
+          ${req.NoteRisorsa?`<div style="font-style:italic;margin-top:6px">"${req.NoteRisorsa}"</div>`:''}
+          <div style="display:flex;gap:8px;margin-top:10px">
             <button class="btn btn-verde" onclick="approvaRichiesta(${req.id})">✓ Approva</button>
             <button class="btn btn-rosso" onclick="apriRifiuto(${req.id},'${req.Dipendente}')">✗ Rifiuta</button>
-          </div>
-        </div>`;
+          </div></div>`;
       body.appendChild(card);
     });
-  } catch(e) { body.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>'; }
+  }catch(e){body.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>';}
 }
-
-async function approvaRichiesta(reqId) {
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    const req = reqs.find(r=>r.id===reqId);
-    if (!req) return;
-    req.Stato = 'approvata';
-    req.Approvatore = utenteCorrente.Title;
-    req.DataRisposta = new Date().toISOString();
-    req.Letta = false;
-    await ghSaveFile(PATH_RICHIESTE, reqs, `Approva richiesta ${req.Dipendente}`);
-    toast('Richiesta approvata!','verde');
-    chiudiModal('overlayRichiesteMgr');
-  } catch(e) { toast('Errore: '+e.message,'rosso'); }
+async function approvaRichiesta(reqId){
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const req=reqs.find(r=>r.id===reqId);if(!req)return;
+    req.Stato='approvata';req.Approvatore=utenteCorrente.Title;req.DataRisposta=new Date().toISOString();req.Letta=false;
+    await ghSaveFile(PATH_RICHIESTE,reqs,`Approva ${req.Dipendente}`);
+    toast('Richiesta approvata!','verde');chiudiModal('overlayRichiesteMgr');
+  }catch(e){toast('Errore: '+e.message,'rosso');}
 }
-
-function apriRifiuto(reqId, nome) {
-  rifiutoTarget = {id: reqId, nome};
+function apriRifiuto(reqId,nome){
+  rifiutoTarget={id:reqId,nome};
   document.getElementById('rifiutoMotiv').value='';
   document.getElementById('rifiutoMsg').textContent='';
   apriModal('overlayRifiuto');
 }
-
-async function confermaRifiuto() {
-  const motiv = document.getElementById('rifiutoMotiv').value.trim();
-  const msg   = document.getElementById('rifiutoMsg');
-  if (!motiv) { msg.textContent='Inserisci una motivazione.'; return; }
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    const req = reqs.find(r=>r.id===rifiutoTarget.id);
-    if (!req) return;
-    req.Stato = 'rifiutata';
-    req.Approvatore = utenteCorrente.Title;
-    req.DataRisposta = new Date().toISOString();
-    req.MotivazioneRifiuto = motiv;
-    req.Letta = false;
-    await ghSaveFile(PATH_RICHIESTE, reqs, `Rifiuta richiesta ${req.Dipendente}`);
-    chiudiModal('overlayRifiuto');
-    chiudiModal('overlayRichiesteMgr');
-    toast('Richiesta rifiutata.','rosso');
-  } catch(e) { document.getElementById('rifiutoMsg').textContent='Errore: '+e.message; }
+async function confermaRifiuto(){
+  const motiv=document.getElementById('rifiutoMotiv').value.trim();
+  const msg=document.getElementById('rifiutoMsg');
+  if(!motiv){msg.textContent='Inserisci una motivazione.';return;}
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const req=reqs.find(r=>r.id===rifiutoTarget.id);if(!req)return;
+    req.Stato='rifiutata';req.Approvatore=utenteCorrente.Title;req.DataRisposta=new Date().toISOString();
+    req.MotivazioneRifiuto=motiv;req.Letta=false;
+    await ghSaveFile(PATH_RICHIESTE,reqs,`Rifiuta ${req.Dipendente}`);
+    chiudiModal('overlayRifiuto');chiudiModal('overlayRichiesteMgr');toast('Richiesta rifiutata.','rosso');
+  }catch(e){msg.textContent='Errore: '+e.message;}
 }
-
-async function controllaNotifiche() {
-  try {
-    const reqs = (await ghGetFile(PATH_RICHIESTE)) || [];
-    const nuove = reqs.filter(r => r.Dipendente===utenteCorrente.Title && !r.Letta &&
-      r.Stato!=='in_attesa' && r.Stato!=='bozza');
-    if (!nuove.length) return;
-
-    const panel = document.getElementById('sideNotif');
-    const list  = document.getElementById('notifList');
-    panel.classList.remove('hidden');
-    list.innerHTML = '';
-
-    for (const req of nuove) {
-      const ok = req.Stato==='approvata';
-      const div = document.createElement('div');
+async function controllaNotifiche(){
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const nuove=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&!r.Letta&&r.Stato!=='in_attesa'&&r.Stato!=='bozza');
+    if(!nuove.length)return;
+    const panel=document.getElementById('sideNotif'),list=document.getElementById('notifList');
+    panel.classList.remove('hidden');list.innerHTML='';
+    for(const req of nuove){
+      const ok=req.Stato==='approvata';
+      const div=document.createElement('div');
       div.style.cssText=`font-size:12px;padding:6px 8px;border-radius:6px;margin-bottom:6px;background:${ok?'#F0FDF4':'#FEF2F2'};border:1px solid ${ok?'#BBF7D0':'#FECACA'}`;
-      div.innerHTML=`<b>${ok?'✅ Approvata':'❌ Rifiutata'}</b> — ${req.Anno} (${req.Giorni.length} gg)`+
+      div.innerHTML=`<b>${ok?'✅ Approvata':'❌ Rifiutata'}</b> — ${req.Anno} (${req.Giorni.length}gg)`+
         (req.MotivazioneRifiuto?`<br><span style="color:var(--debole)">${req.MotivazioneRifiuto}</span>`:'');
-      list.appendChild(div);
-      // Marca come letta
-      req.Letta = true;
+      list.appendChild(div);req.Letta=true;
     }
-    const reqs2 = (await ghGetFile(PATH_RICHIESTE)) || [];
-    nuove.forEach(n => { const r=reqs2.find(x=>x.id===n.id); if(r) r.Letta=true; });
-    await ghSaveFile(PATH_RICHIESTE, reqs2, 'Marca notifiche lette');
-  } catch(e) { console.error('notifiche:', e); }
+    const reqs2=(await ghGetFile(PATH_RICHIESTE))||[];
+    nuove.forEach(n=>{const r=reqs2.find(x=>x.id===n.id);if(r)r.Letta=true;});
+    await ghSaveFile(PATH_RICHIESTE,reqs2,'Marca notifiche lette');
+  }catch(e){console.error('notifiche:',e);}
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   VISTA TEAM
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-async function apriVistaTeam() {
+/* ═══════════════════════════════════════════════════════════════════
+   VISTA TEAM + PDF TEAM
+═══════════════════════════════════════════════════════════════════ */
+async function apriVistaTeam(){
   apriModal('overlayVistaTeam');
-  const anno = parseInt(document.getElementById('annoInput').value);
-  const grid = document.getElementById('calTeam');
-  const filtriDiv = document.getElementById('teamFiltri');
+  document.getElementById('vistaTeamSottotitolo').textContent='Caricamento…';
+  document.getElementById('btnTornaTeam').style.display='none';
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const grid=document.getElementById('calTeam'),filtriDiv=document.getElementById('teamFiltri');
   grid.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
   filtriDiv.innerHTML='';
-
-  try {
-    const ferieData = (await ghGetFile(PATH_FERIE)) || {};
-    const fx = festivita(anno);
-    const oggi = isoDate(new Date());
-    const ferieTeam = {};
-    let palIdx = 0;
-
-    const membri = teamData.filter(m =>
-      m.Caporeparto===utenteCorrente.Title || m.Responsabile===utenteCorrente.Title ||
-      utenteCorrente.Ruolo==='caporeparto');
-
-    membri.forEach(m => {
-      const giorni = (ferieData[m.Title] && ferieData[m.Title][String(anno)]) || [];
-      ferieTeam[m.Title] = { ferie: new Set(giorni), colore: PALETTE[palIdx++%PALETTE.length] };
-      const chip = document.createElement('span');
-      chip.style.cssText=`display:inline-flex;align-items:center;gap:5px;background:${ferieTeam[m.Title].colore}22;border:1px solid ${ferieTeam[m.Title].colore};border-radius:99px;padding:2px 10px;font-size:11px;cursor:pointer`;
-      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${ferieTeam[m.Title].colore}"></span>${m.Title.split(' ')[0]}`;
+  try{
+    const ferieData=(await ghGetFile(PATH_FERIE))||{};
+    const fx=festivita(anno),oggi=isoDate(new Date());
+    const membri=teamData.filter(m=>m.Caporeparto===utenteCorrente.Title||m.Responsabile===utenteCorrente.Title||utenteCorrente.Ruolo==='caporeparto');
+    vistaTeamData={anno,fx,oggi,membri,ferieData};
+    disegnaCalTeam(vistaTeamData,null);
+    // Chip filtro per persona — click per vedere singolo calendario
+    membri.forEach((m,idx)=>{
+      const colore=PALETTE[idx%PALETTE.length];
+      const chip=document.createElement('span');
+      chip.className='chip-membro';
+      chip.style.cssText=`background:${colore}22;border-color:${colore};color:${colore}`;
+      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${colore};display:inline-block"></span> ${m.Title.split(' ')[0]}`;
+      chip.title=`Clicca per vedere solo ${m.Title}`;
+      chip.onclick=()=>apriCalSingolo(m,colore);
       filtriDiv.appendChild(chip);
     });
+    document.getElementById('vistaTeamSottotitolo').textContent=`${membri.length} persone — Anno ${anno}`;
+  }catch(e){grid.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>';}
+}
 
-    grid.innerHTML='';
-    for (let mese=1; mese<=12; mese++) {
-      const card=document.createElement('div'); card.className='mese-card';
-      const hdr=document.createElement('div'); hdr.className='mese-hdr';
-      hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}</span>`;
-      card.appendChild(hdr);
-      const mgrid=document.createElement('div'); mgrid.className='mese-grid';
-      const hwk=document.createElement('div'); hwk.className='giorno-hdr nw'; hwk.textContent='W'; mgrid.appendChild(hwk);
-      GIORNI.forEach((g,i)=>{const h=document.createElement('div');h.className='giorno-hdr'+(i>=5?' wkd':'');h.textContent=g;mgrid.appendChild(h);});
-
-      const totalGiorni=new Date(anno,mese,0).getDate();
-      const primoGiorno=new Date(anno,mese-1,1);
-      let dowI=(primoGiorno.getDay()+6)%7;
-      const righe=[]; let riga={offset:dowI,giorni:[],nw:getISOWeek(primoGiorno)};
-
-      for(let g=1;g<=totalGiorni;g++){
-        const d=new Date(anno,mese-1,g); const iso=isoDate(d);
-        const dw=(d.getDay()+6)%7;
-        if(dw===0&&g>1){righe.push(riga);riga={offset:0,giorni:[],nw:getISOWeek(d)};}
-        const el=document.createElement('div'); el.textContent=g;
-        let cls='giorno';
-        if(fx[iso]) cls+=' festivo-nat';
-        else if(d.getDay()===0||d.getDay()===6) cls+=' weekend';
-        if(iso===oggi) cls+=' oggi';
-        el.className=cls;
-        const chi=Object.keys(ferieTeam).filter(n=>ferieTeam[n].ferie.has(iso));
-        if(chi.length){
-          el.style.position='relative'; el.style.paddingBottom='6px';
+function disegnaCalTeam(vtd,soloPers){
+  const {anno,fx,oggi,membri,ferieData}=vtd;
+  const grid=document.getElementById('calTeam');grid.innerHTML='';
+  const ferieTeam={};
+  membri.forEach((m,idx)=>{
+    const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
+    ferieTeam[m.Title]={ferie:new Set(giorni),colore:PALETTE[idx%PALETTE.length]};
+  });
+  for(let mese=1;mese<=12;mese++){
+    const card=document.createElement('div');card.className='mese-card';
+    const hdr=document.createElement('div');hdr.className='mese-hdr';
+    hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}</span>`;
+    card.appendChild(hdr);
+    const mgrid=document.createElement('div');mgrid.className='mese-grid';
+    const hwk=document.createElement('div');hwk.className='giorno-hdr nw';hwk.textContent='W';mgrid.appendChild(hwk);
+    GIORNI.forEach((g,i)=>{const h=document.createElement('div');h.className='giorno-hdr'+(i>=5?' wkd':'');h.textContent=g;mgrid.appendChild(h);});
+    const totalGiorni=new Date(anno,mese,0).getDate(),primoGiorno=new Date(anno,mese-1,1);
+    let dowI=(primoGiorno.getDay()+6)%7;
+    const righe=[];let riga={offset:dowI,giorni:[],nw:getISOWeek(primoGiorno)};
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
+      if(dw===0&&g>1){righe.push(riga);riga={offset:0,giorni:[],nw:getISOWeek(d)};}
+      const el=document.createElement('div');el.textContent=g;
+      let cls='giorno';
+      if(fx[iso])cls+=' festivo-nat';
+      else if(d.getDay()===0||d.getDay()===6)cls+=' weekend';
+      if(iso===oggi)cls+=' oggi';
+      el.className=cls;
+      const persone=soloPers?[soloPers]:Object.keys(ferieTeam);
+      const chi=persone.filter(n=>ferieTeam[n]&&ferieTeam[n].ferie.has(iso));
+      if(chi.length){
+        if(soloPers){el.classList.add('ferie');}
+        else{
+          el.style.position='relative';el.style.paddingBottom='6px';
           const dots=document.createElement('div');
           dots.style.cssText='display:flex;justify-content:center;gap:1px;position:absolute;bottom:1px;left:0;right:0';
-          chi.forEach(n=>{const dot=document.createElement('span');dot.textContent='●';dot.style.cssText=`color:${ferieTeam[n].colore};font-size:7px;line-height:1`;dots.appendChild(dot);});
-          el.appendChild(dots);
-          el.title=chi.map(n=>n.split(' ')[0]).join(', ');
+          chi.forEach(n=>{const dot=document.createElement('span');dot.textContent='●';
+            dot.style.cssText=`color:${ferieTeam[n].colore};font-size:7px;line-height:1`;dots.appendChild(dot);});
+          el.appendChild(dots);el.title=chi.map(n=>n.split(' ')[0]).join(', ');
         }
-        riga.giorni.push(el);
       }
-      righe.push(riga);
-      righe.forEach(r=>{
-        const nwEl=document.createElement('div');nwEl.className='nw-cell';nwEl.textContent=r.nw;mgrid.appendChild(nwEl);
-        for(let p=0;p<(r.offset||0);p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
-        r.giorni.forEach(el=>mgrid.appendChild(el));
-        const tot=(r.offset||0)+r.giorni.length;
-        for(let p=tot;p<7;p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
-      });
-      card.appendChild(mgrid); grid.appendChild(card);
+      riga.giorni.push(el);
     }
-  } catch(e) { grid.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>'; }
+    righe.push(riga);
+    righe.forEach(r=>{
+      const nwEl=document.createElement('div');nwEl.className='nw-cell';nwEl.textContent=r.nw;mgrid.appendChild(nwEl);
+      for(let p=0;p<(r.offset||0);p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
+      r.giorni.forEach(el=>mgrid.appendChild(el));
+      const tot=(r.offset||0)+r.giorni.length;
+      for(let p=tot;p<7;p++){const v=document.createElement('div');v.className='giorno vuoto';mgrid.appendChild(v);}
+    });
+    card.appendChild(mgrid);grid.appendChild(card);
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PASSWORD
-   ═══════════════════════════════════════════════════════════════════════════ */
+function apriCalSingolo(membro,colore){
+  if(!vistaTeamData)return;
+  document.getElementById('vistaTeamSottotitolo').textContent=`📅 ${membro.Title}`;
+  document.getElementById('btnTornaTeam').style.display='inline-flex';
+  // nascondi chip
+  document.querySelectorAll('#teamFiltri .chip-membro').forEach(c=>c.classList.add('disattivo'));
+  disegnaCalTeam(vistaTeamData,membro.Title);
+}
 
-function apriCambioPassword(primo=false) {
-  primAccesso = primo;
-  document.getElementById('cambioPwdTitolo').textContent =
-    primo ? '🔐 Primo accesso — Imposta la tua password' : '🔐 Cambia Password';
-  document.getElementById('cambioPwdSotto').textContent =
-    primo ? 'Imposta una password personale prima di continuare.' : '';
-  document.getElementById('fieldOldPwd').style.display = primo ? 'none':'';
-  document.getElementById('btnAnnullaCambioPwd').style.display = primo ? 'none':'';
-  document.getElementById('oldPwd').value='';
-  document.getElementById('newPwd1').value='';
-  document.getElementById('newPwd2').value='';
-  document.getElementById('cambioPwdMsg').textContent='';
+function tornaVistaTeam(){
+  if(!vistaTeamData)return;
+  document.getElementById('vistaTeamSottotitolo').textContent=`${vistaTeamData.membri.length} persone — Anno ${vistaTeamData.anno}`;
+  document.getElementById('btnTornaTeam').style.display='none';
+  document.querySelectorAll('#teamFiltri .chip-membro').forEach(c=>c.classList.remove('disattivo'));
+  disegnaCalTeam(vistaTeamData,null);
+}
+
+async function stampaPDFTeam(){
+  if(!vistaTeamData){toast('Prima apri la vista team','rosso');return;}
+  const {anno,fx,membri,ferieData}=vistaTeamData;
+  const oggiIso=isoDate(new Date());
+  let html=`<style>
+    body{font-family:Arial,sans-serif;font-size:9px;}
+    h1{font-size:16px;color:#2563EB;margin:0 0 4px}
+    h2{font-size:11px;color:#2563EB;margin:12px 0 4px;border-bottom:1px solid #CBD5E1}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+    .mese{border:1px solid #CBD5E1;border-radius:4px;overflow:hidden}
+    .mese-h{background:#EFF6FF;padding:3px 5px;font-weight:700;font-size:8px;border-left:3px solid #2563EB}
+    .cal{display:grid;grid-template-columns:repeat(8,1fr);padding:2px;gap:1px}
+    .gh{text-align:center;font-size:7px;font-weight:700;color:#2563EB;padding:1px 0}
+    .gh.wk{color:#EF4444}.gh.nw{color:#94A3B8;font-size:6px}
+    .gd{text-align:center;font-size:7px;padding:1px 0;border-radius:2px;position:relative}
+    .gd.fest{background:#FEF2F2;color:#EF4444}.gd.wkd{background:#F0F9FF;color:#94A3B8}
+    .gd.oggi{background:#F59E0B;color:#fff;border-radius:50%}
+    .dots{display:flex;justify-content:center;gap:1px;position:absolute;bottom:0;left:0;right:0}
+    .dot{font-size:5px;line-height:1}
+    .nw{text-align:center;font-size:6px;color:#94A3B8}
+    .legenda{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+    .litem{display:inline-flex;align-items:center;gap:4px;font-size:9px}
+    .ldot{width:10px;height:10px;border-radius:50%;display:inline-block}
+    .tab{border-collapse:collapse;width:100%}
+    .tab th{background:#2563EB;color:#fff;padding:3px 6px;font-size:8px}
+    .tab td{padding:3px 6px;border-bottom:1px solid #F1F5F9;font-size:8px}
+    .tab tr:nth-child(even) td{background:#F8FAFC}
+    @media print{@page{margin:8mm;size:A4}}
+  </style>
+  <h1>⊛ Calendario Team ${anno}</h1>
+  <p style="color:#64748B;font-size:10px;margin-bottom:8px">Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
+  <div class="legenda">`;
+
+  const ferieTeam={};
+  membri.forEach((m,idx)=>{
+    const colore=PALETTE[idx%PALETTE.length];
+    const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
+    ferieTeam[m.Title]={ferie:new Set(giorni),colore};
+    html+=`<span class="litem"><span class="ldot" style="background:${colore}"></span>${m.Title.split(' ')[0]} ${m.Title.split(' ').slice(-1)[0]}</span>`;
+  });
+  html+='</div><div class="grid">';
+
+  for(let mese=1;mese<=12;mese++){
+    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}</div><div class="cal">`;
+    html+=`<div class="gh nw">W</div>`;
+    GIORNI.forEach((g,i)=>html+=`<div class="gh${i>=5?' wk':''}">${g}</div>`);
+    const primoGiorno=new Date(anno,mese-1,1),totalGiorni=new Date(anno,mese,0).getDate();
+    let dow=(primoGiorno.getDay()+6)%7;
+    const righe=[];let riga={offset:dow,giorni:[],nw:getISOWeek(primoGiorno)};
+    for(let g=1;g<=totalGiorni;g++){
+      const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
+      if(dw===0&&g>1){righe.push(riga);riga={offset:0,giorni:[],nw:getISOWeek(d)};}
+      let cls='gd';
+      if(fx[iso])cls+=' fest';else if(d.getDay()===0||d.getDay()===6)cls+=' wkd';
+      if(iso===oggiIso)cls+=' oggi';
+      const chi=Object.keys(ferieTeam).filter(n=>ferieTeam[n].ferie.has(iso));
+      let dots='';
+      if(chi.length)dots=`<div class="dots">${chi.map(n=>`<span class="dot" style="color:${ferieTeam[n].colore}">●</span>`).join('')}</div>`;
+      riga.giorni.push(`<div class="${cls}">${g}${dots}</div>`);
+    }
+    righe.push(riga);
+    righe.forEach(r=>{
+      html+=`<div class="nw">${r.nw}</div>`;
+      for(let p=0;p<(r.offset||0);p++)html+='<div class="gd"></div>';
+      r.giorni.forEach(el=>html+=el);
+      const tot=(r.offset||0)+r.giorni.length;
+      for(let p=tot;p<7;p++)html+='<div class="gd"></div>';
+    });
+    html+='</div></div>';
+  }
+  html+='</div>';
+
+  // Tabella riepilogo team
+  html+=`<h2>Riepilogo giorni ferie per persona</h2>
+  <table class="tab"><tr><th>Nome</th><th>Ruolo</th>`;
+  MESI.forEach(m=>html+=`<th>${m.substring(0,3)}</th>`);
+  html+='<th>Totale</th></tr>';
+  membri.forEach(m=>{
+    const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
+    const perMese=new Array(12).fill(0);
+    giorni.forEach(g=>{if(!fx[g]){const d=isoToDate(g);if(d.getDay()>0&&d.getDay()<6)perMese[d.getMonth()]++;}});
+    const tot=perMese.reduce((a,b)=>a+b,0);
+    html+=`<tr><td>${m.Title}</td><td>${m.Ruolo}</td>`;
+    perMese.forEach(n=>html+=`<td style="text-align:center">${n||''}</td>`);
+    html+=`<td style="text-align:center;font-weight:700">${tot}</td></tr>`;
+  });
+  html+='</table>';
+  apriStampa(html);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PASSWORD
+═══════════════════════════════════════════════════════════════════ */
+function apriCambioPassword(primo=false){
+  primAccesso=primo;
+  document.getElementById('cambioPwdTitolo').textContent=primo?'🔐 Primo accesso — Imposta la tua password':'🔐 Cambia Password';
+  document.getElementById('cambioPwdSotto').textContent=primo?'Imposta una password personale prima di continuare.':'';
+  document.getElementById('fieldOldPwd').style.display=primo?'none':'';
+  document.getElementById('btnAnnullaCambioPwd').style.display=primo?'none':'';
+  document.getElementById('oldPwd').value='';document.getElementById('newPwd1').value='';
+  document.getElementById('newPwd2').value='';document.getElementById('cambioPwdMsg').textContent='';
   apriModal('overlayCambioPwd');
 }
-
-async function confermaCambioPwd() {
-  const msg   = document.getElementById('cambioPwdMsg');
-  const nuova = document.getElementById('newPwd1').value;
-  const conf  = document.getElementById('newPwd2').value;
+async function confermaCambioPwd(){
+  const msg=document.getElementById('cambioPwdMsg');
+  const nuova=document.getElementById('newPwd1').value,conf=document.getElementById('newPwd2').value;
   msg.textContent='';
-
-  if (!primAccesso) {
-    const vecchia = document.getElementById('oldPwd').value;
-    const hVecchia = await sha256(vecchia);
-    const membro = teamData.find(m=>m.id===utenteCorrente.id);
-    const ok = membro.PasswordHash==='TEMP'
-      ? hVecchia===membro.PasswordTemp
-      : hVecchia===membro.PasswordHash;
-    if (!ok) { msg.textContent='Password attuale errata.'; return; }
+  if(!primAccesso){
+    const vecchia=document.getElementById('oldPwd').value,hVecchia=await sha256(vecchia);
+    const membro=teamData.find(m=>m.id===utenteCorrente.id);
+    const ok=membro.PasswordHash==='TEMP'?hVecchia===membro.PasswordTemp:hVecchia===membro.PasswordHash;
+    if(!ok){msg.textContent='Password attuale errata.';return;}
   }
-  if (nuova.length<8) { msg.textContent='Minimo 8 caratteri.'; return; }
-  if (!/\d/.test(nuova)) { msg.textContent='Deve contenere almeno un numero.'; return; }
-  if (nuova!==conf) { msg.textContent='Le password non coincidono.'; return; }
-
-  try {
-    const h = await sha256(nuova);
-    const config = await ghGetFile(PATH_CONFIG);
-    const membro = config.find(m=>m.id===utenteCorrente.id);
-    membro.PasswordHash = h; membro.PasswordTemp = '';
-    await ghSaveFile(PATH_CONFIG, config, `Aggiorna password ${utenteCorrente.Title}`);
-    utenteCorrente.PasswordHash = h; utenteCorrente.PasswordTemp='';
-    teamData.find(m=>m.id===utenteCorrente.id).PasswordHash = h;
-    chiudiModal('overlayCambioPwd');
-    toast('Password aggiornata!','verde');
-    primAccesso=false;
-  } catch(e) { msg.textContent='Errore: '+e.message; }
+  if(nuova.length<8){msg.textContent='Minimo 8 caratteri.';return;}
+  if(!/\d/.test(nuova)){msg.textContent='Almeno un numero.';return;}
+  if(nuova!==conf){msg.textContent='Le password non coincidono.';return;}
+  try{
+    const h=await sha256(nuova);
+    const config=await ghGetFile(PATH_CONFIG);
+    const membro=config.find(m=>m.id===utenteCorrente.id);
+    membro.PasswordHash=h;membro.PasswordTemp='';
+    await ghSaveFile(PATH_CONFIG,config,`Password ${utenteCorrente.Title}`);
+    utenteCorrente.PasswordHash=h;utenteCorrente.PasswordTemp='';
+    teamData.find(m=>m.id===utenteCorrente.id).PasswordHash=h;
+    chiudiModal('overlayCambioPwd');toast('Password aggiornata!','verde');primAccesso=false;
+  }catch(e){msg.textContent='Errore: '+e.message;}
 }
-
-async function apriResetPwd() {
-  const list = document.getElementById('resetPwdList');
-  list.innerHTML='';
-  const miei = teamData.filter(m=>
-    m.Responsabile===utenteCorrente.Title||m.Caporeparto===utenteCorrente.Title);
-
-  miei.forEach(m => {
-    const stato = m.PasswordHash==='TEMP' ? '🟡 Temporanea':'🟢 Impostata';
-    const row = document.createElement('div');
+async function apriResetPwd(){
+  const list=document.getElementById('resetPwdList');list.innerHTML='';
+  const miei=teamData.filter(m=>m.Responsabile===utenteCorrente.Title||m.Caporeparto===utenteCorrente.Title);
+  miei.forEach(m=>{
+    const stato=m.PasswordHash==='TEMP'?'🟡 Temporanea':'🟢 Impostata';
+    const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bordo)';
-    row.innerHTML = `<span style="font-size:13px">${m.Title}</span>
-      <span style="font-size:11px;color:var(--debole)">${stato}</span>`;
-    const btn = document.createElement('button');
-    btn.className='btn btn-rosso'; btn.style.fontSize='11px'; btn.style.padding='4px 10px';
-    btn.textContent='Reset';
-    btn.onclick = async () => {
-      const pwd = pwdTemp(m.Title);
-      if (!confirm(`Reimpostare la password di ${m.Title}?\n\nNuova password temporanea: ${pwd}`)) return;
-      const h = await sha256(pwd);
-      const config = await ghGetFile(PATH_CONFIG);
-      const mb = config.find(c=>c.id===m.id);
-      mb.PasswordHash='TEMP'; mb.PasswordTemp=h;
-      await ghSaveFile(PATH_CONFIG, config, `Reset password ${m.Title}`);
-      m.PasswordHash='TEMP'; m.PasswordTemp=h;
-      alert(`Password reimpostata.\nPassword temporanea: ${pwd}`);
-      apriResetPwd();
+    row.innerHTML=`<span style="font-size:13px">${m.Title}</span><span style="font-size:11px;color:var(--debole)">${stato}</span>`;
+    const btn=document.createElement('button');btn.className='btn btn-rosso';
+    btn.style.cssText='font-size:11px;padding:4px 10px';btn.textContent='Reset';
+    btn.onclick=async()=>{
+      const pwd=pwdTemp(m.Title);
+      if(!confirm(`Reimpostare la password di ${m.Title}?\nNuova password: ${pwd}`))return;
+      const h=await sha256(pwd);
+      const config=await ghGetFile(PATH_CONFIG);
+      const mb=config.find(c=>c.id===m.id);mb.PasswordHash='TEMP';mb.PasswordTemp=h;
+      await ghSaveFile(PATH_CONFIG,config,`Reset pwd ${m.Title}`);
+      m.PasswordHash='TEMP';m.PasswordTemp=h;
+      alert(`Password reimpostata.\nPassword temporanea: ${pwd}`);apriResetPwd();
     };
-    row.appendChild(btn);
-    list.appendChild(row);
+    row.appendChild(btn);list.appendChild(row);
   });
   apriModal('overlayResetPwd');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    AVVIO
-   ═══════════════════════════════════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', init);
-
+═══════════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
 </html>
