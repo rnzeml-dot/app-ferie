@@ -1138,7 +1138,7 @@ let filtroAttivo=new Set(); // set di Title selezionati, vuoto = tutti
 async function apriVistaTeam(){
   apriModal('overlayVistaTeam');
   document.getElementById('vistaTeamSottotitolo').textContent='Caricamento…';
-  document.getElementById('btnTornaTeam').style.display='none';
+  
   filtroAttivo.clear();
   const anno=parseInt(document.getElementById('annoInput').value);
   const grid=document.getElementById('calTeam'),filtriDiv=document.getElementById('teamFiltri');
@@ -1203,7 +1203,7 @@ function aggiornaFiltroVisual(){
   if(!vistaTeamData)return;
   const nessuno=filtroAttivo.size===0;
   const sottotitolo=document.getElementById('vistaTeamSottotitolo');
-  document.getElementById('btnTornaTeam').style.display='none';
+  
 
   vistaTeamData.membri.forEach((m,idx)=>{
     const chip=document.getElementById(`chip-${m.id}`);
