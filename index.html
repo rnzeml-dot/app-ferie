@@ -36,6 +36,29 @@
     transition:background .15s; }
   .btn-logout:hover { background:rgba(255,255,255,.25); }
 
+  /* User menu dropdown */
+  .user-menu-wrap { position:relative; }
+  .user-menu-btn  { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:5px 12px;
+    cursor:pointer; color:#fff; font-family:var(--font); font-size:13px; font-weight:600;
+    transition:background .15s; }
+  .user-menu-btn:hover { background:rgba(255,255,255,.2); }
+  .user-menu-btn .arrow { font-size:10px; opacity:.7; transition:transform .2s; }
+  .user-menu-btn.open .arrow { transform:rotate(180deg); }
+  .user-dropdown { display:none; position:absolute; top:calc(100% + 6px); right:0;
+    background:var(--card); border:1px solid var(--bordo); border-radius:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,.18); min-width:220px; z-index:300; overflow:hidden; }
+  .user-dropdown.open { display:block; }
+  .udrop-header { padding:10px 14px 8px; border-bottom:1px solid var(--bordo);
+    font-size:11px; color:var(--debole); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+  .udrop-item { display:flex; align-items:center; gap:10px; padding:10px 14px;
+    font-size:13px; cursor:pointer; color:var(--testo); background:none; border:none;
+    width:100%; text-align:left; font-family:var(--font); transition:background .12s; }
+  .udrop-item:hover { background:var(--grigio); }
+  .udrop-item.danger { color:var(--rosso); }
+  .udrop-item.danger:hover { background:#FEF2F2; }
+  .udrop-sep { height:1px; background:var(--bordo); margin:4px 0; }
+
   /* Layout */
   .app-body { display:flex; gap:0; height:calc(100vh - 56px); overflow:hidden; }
 
@@ -267,9 +290,24 @@
   <header class="app-header">
     <div class="logo">FE<span>R</span>IE</div>
     <div class="user-info">
-      <span class="user-name" id="hdrNome"></span>
-      <span class="badge-ruolo" id="hdrBadge"></span>
-      <button class="btn-logout" onclick="logout()">Esci</button>
+      <div class="user-menu-wrap">
+        <button class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu(event)">
+          <span id="hdrNome"></span>
+          <span id="hdrBadge" class="badge-ruolo"></span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="udrop-header">Il mio account</div>
+          <button class="udrop-item" onclick="apriCambioPassword();chiudiUserMenu()">🔐 Cambia password</button>
+          <button class="udrop-item" onclick="stampaPDF();chiudiUserMenu()">🖨 Stampa PDF personale</button>
+          <div class="udrop-sep"></div>
+          <div class="udrop-header">Gestione dati</div>
+          <button class="udrop-item danger" onclick="apriRimuoviDati('ferie');chiudiUserMenu()">✕ Rimuovi ferie anno</button>
+          <button class="udrop-item danger" onclick="apriRimuoviDati('permessi');chiudiUserMenu()">✕ Rimuovi permessi anno</button>
+          <div class="udrop-sep"></div>
+          <button class="udrop-item danger" onclick="logout();chiudiUserMenu()">← Esci</button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -315,15 +353,12 @@
         <div class="sep"></div>
         <button class="btn btn-verde"  onclick="apriPeriodo()">+ Ferie</button>
         <button class="btn btn-blu"    onclick="apriPeriodo()">⊞ Periodo</button>
-        <button class="btn btn-rosso"  onclick="rimuoviFerie()">✕ Rimuovi ferie</button>
         <div class="sep"></div>
         <button class="btn" style="background:var(--azzurro)" onclick="apriPermesso()">+ Permesso ore</button>
-        <button class="btn btn-rosso"  onclick="rimuoviPermessi()">✕ Rimuovi permessi</button>
         <div class="sep"></div>
         <button class="btn btn-blu"    onclick="salvaFerie()">↓ Salva</button>
         <button class="btn btn-pdf"    onclick="stampaPDF()">🖨 Stampa PDF</button>
         <div class="sep"></div>
-        <button class="btn btn-grigio" onclick="apriCambioPassword()">🔐 Password</button>
         <span id="toolbarManager" class="hidden" style="display:contents">
           <div class="sep"></div>
           <button class="btn btn-blu"   onclick="apriRichieste()">≡ Richieste</button>
@@ -368,6 +403,21 @@
       <button class="btn btn-grigio" onclick="chiudiModal('overlayPeriodo')">Annulla</button>
       <button class="btn btn-verde"  onclick="confermaPeriodo()">✓ Aggiungi al calendario</button>
     </div>
+  </div>
+</div>
+
+<!-- Rimozione ferie/permessi -->
+<div class="overlay" id="overlayRimuovi">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hdr" style="background:var(--rosso)">
+      <h2 id="rimuoviTitolo">Rimuovi dati</h2>
+      <p id="rimuoviSottotitolo"></p>
+    </div>
+    <div class="modal-body">
+      <div id="rimuoviContenuto"></div>
+      <div id="rimuoviMsg" class="msg-err"></div>
+    </div>
+    <div class="modal-footer" id="rimuoviFooter"></div>
   </div>
 </div>
 
@@ -1308,21 +1358,31 @@ async function apriRichieste(){
     if(!pending.length){body.innerHTML='<p style="color:var(--debole);text-align:center;padding:20px">Nessuna richiesta in attesa.</p>';return;}
     pending.forEach(req=>{
       const tipo=req.Tipo||'ferie';
-      const totOre=tipo==='permesso'?Object.values(req.OrePerGiorno||{}).reduce((t,v)=>t+(v?.ore||0),0):0;
+      const isAnnullamento=tipo.startsWith('annullamento_');
+      const tipoBase=isAnnullamento?tipo.replace('annullamento_',''):tipo;
+      const totOre=tipoBase==='permesso'?Object.values(req.OrePerGiorno||{}).reduce((t,v)=>t+(v?.ore||0),0):0;
       const g=(req.Giorni||[]).slice(0,3).map(d=>isoToDate(d).toLocaleDateString('it-IT',{day:'2-digit',month:'short'})).join(', ')
-        +(req.Giorni.length>3?` …(+${req.Giorni.length-3})`:'');
-      const tipoBadge=tipo==='permesso'
-        ?`<span class="stato-badge" style="background:var(--azzurro)">Permesso ore</span>`
-        :`<span class="stato-badge" style="background:var(--verde)">Ferie</span>`;
+        +(req.Giorni&&req.Giorni.length>3?` …(+${req.Giorni.length-3})`:'');
+      let tipoBadge;
+      if(isAnnullamento){
+        tipoBadge=`<span class="stato-badge" style="background:var(--rosso)">🚫 Annullamento ${tipoBase==='permessi'?'permessi':'ferie'}</span>`;
+      } else if(tipoBase==='permesso'){
+        tipoBadge=`<span class="stato-badge" style="background:var(--azzurro)">Permesso ore</span>`;
+      } else {
+        tipoBadge=`<span class="stato-badge" style="background:var(--verde)">Ferie</span>`;
+      }
       const card=document.createElement('div');card.className='richiesta-card';
+      const dettaglio=isAnnullamento
+        ?`<div><b>Anno:</b> ${req.Anno}</div>`
+        :`<div><b>Anno:</b> ${req.Anno} | <b>${tipoBase==='permesso'?'Ore totali: '+totOre+'h':'Giorni: '+(req.Giorni||[]).length}</b></div>
+           <div style="color:var(--debole);margin-top:4px">${g}</div>`;
       card.innerHTML=`<div class="richiesta-hdr"><span class="richiesta-nome">${req.Dipendente}</span>
         <div style="display:flex;gap:6px;align-items:center">${tipoBadge}<span class="stato-badge stato-attesa">In attesa</span></div></div>
         <div class="richiesta-body">
-          <div><b>Anno:</b> ${req.Anno} | <b>${tipo==='permesso'?'Ore totali: '+totOre+'h':'Giorni: '+req.Giorni.length}</b></div>
-          <div style="color:var(--debole);margin-top:4px">${g}</div>
-          ${req.NoteRisorsa?`<div style="font-style:italic;margin-top:6px">"${req.NoteRisorsa}"</div>`:''}
+          ${dettaglio}
+          ${req.NoteRisorsa?`<div style="font-style:italic;margin-top:6px;color:var(--rosso)">"${req.NoteRisorsa}"</div>`:''}
           <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn btn-verde" onclick="approvaRichiesta(${req.id})">✓ Approva</button>
+            <button class="btn btn-verde" onclick="approvaRichiesta(${req.id})">✓ ${isAnnullamento?'Concedi annullamento':'Approva'}</button>
             <button class="btn btn-rosso" onclick="apriRifiuto(${req.id},'${req.Dipendente}')">✗ Rifiuta</button>
           </div></div>`;
       body.appendChild(card);
@@ -1336,15 +1396,28 @@ async function approvaRichiesta(reqId){
     req.Stato='approvata';req.Approvatore=utenteCorrente.Title;req.DataRisposta=new Date().toISOString();req.Letta=false;
     await ghSaveFile(PATH_RICHIESTE,reqs,`Approva ${req.Dipendente}`);
     const anno=String(req.Anno);
-    if((req.Tipo||'ferie')==='permesso'){
-      // Salva permessi approvati in permessi.json
+    const tipo=req.Tipo||'ferie';
+
+    if(tipo==='annullamento_ferie'){
+      // Rimuovi le ferie approvate da ferie.json
+      const ferieData=(await ghGetFile(PATH_FERIE))||{};
+      if(ferieData[req.Dipendente]&&ferieData[req.Dipendente][anno])
+        ferieData[req.Dipendente][anno]=[];
+      await ghSaveFile(PATH_FERIE,ferieData,`Annullamento ferie ${req.Dipendente} ${anno}`);
+    } else if(tipo==='annullamento_permessi'){
+      // Rimuovi i permessi approvati da permessi.json
+      const pdata=(await ghGetFile(PATH_PERMESSI))||{};
+      if(pdata[req.Dipendente]&&pdata[req.Dipendente][anno])
+        pdata[req.Dipendente][anno]={};
+      await ghSaveFile(PATH_PERMESSI,pdata,`Annullamento permessi ${req.Dipendente} ${anno}`);
+    } else if(tipo==='permesso'){
       const pdata=(await ghGetFile(PATH_PERMESSI))||{};
       if(!pdata[req.Dipendente])pdata[req.Dipendente]={};
       if(!pdata[req.Dipendente][anno])pdata[req.Dipendente][anno]={};
       Object.assign(pdata[req.Dipendente][anno], req.OrePerGiorno||{});
       await ghSaveFile(PATH_PERMESSI,pdata,`Permessi approvati ${req.Dipendente} ${anno}`);
     } else {
-      // Salva ferie approvate in ferie.json
+      // ferie normali → salva in ferie.json
       const ferieData=(await ghGetFile(PATH_FERIE))||{};
       if(!ferieData[req.Dipendente])ferieData[req.Dipendente]={};
       const esistenti=new Set(ferieData[req.Dipendente][anno]||[]);
@@ -1448,7 +1521,144 @@ async function apriVistaTeam(){
   }catch(e){grid.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>';}
 }
 
-function toggleChipFiltro(title, event){
+function toggleUserMenu(e){
+  e.stopPropagation();
+  const btn=document.getElementById('userMenuBtn');
+  const dd=document.getElementById('userDropdown');
+  const isOpen=dd.classList.contains('open');
+  chiudiUserMenu();
+  if(!isOpen){dd.classList.add('open');btn.classList.add('open');}
+}
+function chiudiUserMenu(){
+  document.getElementById('userDropdown').classList.remove('open');
+  document.getElementById('userMenuBtn').classList.remove('open');
+}
+document.addEventListener('click',()=>{chiudiUserMenu();});
+
+async function apriRimuoviDati(tipo){
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const annoS=String(anno);
+  const titolo=document.getElementById('rimuoviTitolo');
+  const sotto=document.getElementById('rimuoviSottotitolo');
+  const cont=document.getElementById('rimuoviContenuto');
+  const footer=document.getElementById('rimuoviFooter');
+  const msg=document.getElementById('rimuoviMsg');
+  msg.textContent='';
+
+  if(tipo==='ferie'){
+    const giorni=[...ferieLocali].filter(g=>g.startsWith(annoS));
+    titolo.textContent='Rimuovi ferie '+anno;
+    if(!giorni.length){toast('Nessuna feria da rimuovere','rosso');return;}
+
+    // Controlla se ci sono ferie approvate in richieste.json
+    let haApprovate=false;
+    try{
+      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+      haApprovate=reqs.some(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&(r.Tipo||'ferie')==='ferie'&&r.Stato==='approvata');
+    }catch(e){}
+
+    if(haApprovate){
+      sotto.textContent='Alcune ferie risultano già approvate';
+      cont.innerHTML=`
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px;font-size:13px;margin-bottom:12px">
+          <b>⚠️ Attenzione:</b> hai ferie già approvate per il ${anno}.<br><br>
+          La rimozione locale cancellerà solo la visualizzazione sul tuo calendario.<br>
+          Per annullare le ferie approvate devi inviare una <b>richiesta di annullamento</b> al tuo responsabile.
+        </div>
+        <div style="font-size:13px;margin-bottom:8px"><b>${giorni.length} giorni</b> selezionati per la rimozione locale.</div>
+        <div class="field"><label>Motivo annullamento (per la richiesta al responsabile)</label>
+          <textarea id="rimuoviMotivo" placeholder="es. cambio programma, esigenze lavorative…"></textarea></div>`;
+      footer.innerHTML=`
+        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
+        <button class="btn btn-ambra" onclick="eseguiRimozione('ferie',false)">Solo rimozione locale</button>
+        <button class="btn btn-rosso" onclick="eseguiRimozione('ferie',true)">Invia richiesta annullamento</button>`;
+    } else {
+      sotto.textContent=`${giorni.length} giorni da rimuovere`;
+      cont.innerHTML=`
+        <div style="font-size:13px;color:var(--debole);margin-bottom:12px">
+          Stai per rimuovere tutte le ferie del ${anno} dal tuo calendario.<br>
+          <b>Questa operazione non è reversibile.</b>
+        </div>
+        <div style="font-size:13px"><b>${giorni.length} giorni</b> verranno eliminati.</div>`;
+      footer.innerHTML=`
+        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
+        <button class="btn btn-rosso" onclick="eseguiRimozione('ferie',false)">✕ Rimuovi ferie</button>`;
+    }
+  } else {
+    const giorni=Object.keys(permessiLocali).filter(g=>g.startsWith(annoS));
+    titolo.textContent='Rimuovi permessi '+anno;
+    if(!giorni.length){toast('Nessun permesso da rimuovere','rosso');return;}
+
+    let haApprovati=false;
+    try{
+      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+      haApprovati=reqs.some(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&r.Tipo==='permesso'&&r.Stato==='approvata');
+    }catch(e){}
+
+    const totOre=giorni.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0);
+
+    if(haApprovati){
+      sotto.textContent='Alcuni permessi risultano già approvati';
+      cont.innerHTML=`
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px;font-size:13px;margin-bottom:12px">
+          <b>⚠️ Attenzione:</b> hai permessi già approvati per il ${anno}.<br><br>
+          La rimozione locale cancellerà solo la visualizzazione sul tuo calendario.<br>
+          Per annullare i permessi approvati devi inviare una <b>richiesta di annullamento</b> al tuo responsabile.
+        </div>
+        <div style="font-size:13px;margin-bottom:8px"><b>${giorni.length} giorni</b> (${totOre}h totali) selezionati per la rimozione locale.</div>
+        <div class="field"><label>Motivo annullamento (per la richiesta al responsabile)</label>
+          <textarea id="rimuoviMotivo" placeholder="es. cambio programma, esigenze lavorative…"></textarea></div>`;
+      footer.innerHTML=`
+        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
+        <button class="btn btn-ambra" onclick="eseguiRimozione('permessi',false)">Solo rimozione locale</button>
+        <button class="btn btn-rosso" onclick="eseguiRimozione('permessi',true)">Invia richiesta annullamento</button>`;
+    } else {
+      sotto.textContent=`${giorni.length} giorni — ${totOre}h totali`;
+      cont.innerHTML=`
+        <div style="font-size:13px;color:var(--debole);margin-bottom:12px">
+          Stai per rimuovere tutti i permessi del ${anno} dal tuo calendario.<br>
+          <b>Questa operazione non è reversibile.</b>
+        </div>
+        <div style="font-size:13px"><b>${giorni.length} giorni</b> (${totOre}h) verranno eliminati.</div>`;
+      footer.innerHTML=`
+        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
+        <button class="btn btn-rosso" onclick="eseguiRimozione('permessi',false)">✕ Rimuovi permessi</button>`;
+    }
+  }
+  apriModal('overlayRimuovi');
+}
+
+async function eseguiRimozione(tipo,conRichiesta){
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const annoS=String(anno);
+  const msg=document.getElementById('rimuoviMsg');
+  msg.textContent='';
+
+  if(conRichiesta){
+    const motivo=(document.getElementById('rimuoviMotivo')?.value||'').trim();
+    if(!motivo){msg.textContent='Inserisci un motivo per la richiesta di annullamento.';return;}
+    try{
+      const destinatario=utenteCorrente.Ruolo==='responsabile'?utenteCorrente.Caporeparto:utenteCorrente.Responsabile;
+      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+      reqs.push({id:Date.now(),Tipo:'annullamento_'+tipo,Dipendente:utenteCorrente.Title,
+        Responsabile:destinatario,Anno:anno,Stato:'in_attesa',
+        NoteRisorsa:motivo,DataInvio:new Date().toISOString(),
+        Approvatore:'',DataRisposta:'',MotivazioneRifiuto:'',Letta:false});
+      await ghSaveFile(PATH_RICHIESTE,reqs,`Annullamento ${tipo} ${utenteCorrente.Title} ${anno}`);
+      toast('Richiesta di annullamento inviata al responsabile','verde');
+    }catch(e){msg.textContent='Errore invio richiesta: '+e.message;return;}
+  }
+
+  // Rimozione locale
+  if(tipo==='ferie'){
+    for(const g of[...ferieLocali])if(g.startsWith(annoS))ferieLocali.delete(g);
+  } else {
+    for(const k of Object.keys(permessiLocali))if(k.startsWith(annoS))delete permessiLocali[k];
+  }
+  chiudiModal('overlayRimuovi');
+  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  if(!conRichiesta)toast(`${tipo==='ferie'?'Ferie':'Permessi'} rimoss${tipo==='ferie'?'e':'i'} localmente`,'rosso');
+}
   if(!vistaTeamData)return;
   if(filtroAttivo.has(title)){
     filtroAttivo.delete(title);
