@@ -663,17 +663,29 @@ function aggiornaSidebar(){
   body.innerHTML='';
   for(let m=1;m<=12;m++){
     const totalGiorni=new Date(anno,m,0).getDate();
-    let ferie=0,fest=0,wkd=0;
+    let ferie=0,wkd=0;
+    const nomiFest=[];
     for(let g=1;g<=totalGiorni;g++){
       const d=new Date(anno,m-1,g),iso=isoDate(d);
-      if(fx[iso])fest++;
+      if(fx[iso])nomiFest.push(fx[iso]);
       else if(d.getDay()===0||d.getDay()===6)wkd++;
       else if(ferieLocali.has(iso))ferie++;
     }
-    const row=document.createElement('div');row.className='riepilogo-mese';
-    row.innerHTML=`<span class="nm">${MESI[m-1].substring(0,3)}</span>`+
-      `<span class="nf">${ferie>0?ferie+'f':''}</span>`+
-      `<span class="nx">${fest}fest ${wkd}wkd</span>`;
+    const row=document.createElement('div');
+    row.style.cssText='padding:5px 0;border-bottom:1px solid var(--bordo);font-size:11px';
+    const rigaTop=document.createElement('div');
+    rigaTop.style.cssText='display:flex;justify-content:space-between;align-items:center';
+    rigaTop.innerHTML=
+      `<span style="font-weight:700">${MESI[m-1].substring(0,3)}</span>`+
+      `<span style="color:var(--verde);font-weight:700">${ferie>0?ferie+' ferie':''}</span>`+
+      `<span style="color:var(--debole);font-size:10px">${wkd}wkd</span>`;
+    row.appendChild(rigaTop);
+    if(nomiFest.length){
+      const rigaFest=document.createElement('div');
+      rigaFest.style.cssText='color:#EF4444;font-size:10px;margin-top:2px;line-height:1.4';
+      rigaFest.textContent='🎉 '+nomiFest.join(', ');
+      row.appendChild(rigaFest);
+    }
     body.appendChild(row);
   }
 }
@@ -832,6 +844,10 @@ function stampaPDF(){
     }
   }
 
+  // Festività dell'anno per esteso
+  const tuttiGiorni=Object.entries(fx).sort(([a],[b])=>a.localeCompare(b));
+  const totFestivita=tuttiGiorni.length;
+
   let html=`<style>
     body{font-family:Arial,sans-serif;font-size:10px;color:#1E293B;}
     h1{font-size:18px;color:#2563EB;margin:0 0 4px}
@@ -850,12 +866,13 @@ function stampaPDF(){
     .nw{text-align:center;font-size:7px;color:#94A3B8}
     .riepilogo{border-collapse:collapse;width:100%;margin-top:6px}
     .riepilogo th{background:#2563EB;color:#fff;padding:4px 8px;text-align:left;font-size:9px}
-    .riepilogo td{padding:4px 8px;border-bottom:1px solid #F1F5F9;font-size:9px}
+    .riepilogo td{padding:4px 8px;border-bottom:1px solid #F1F5F9;font-size:9px;vertical-align:top}
     .riepilogo tr:nth-child(even) td{background:#F8FAFC}
     .stat-box{display:inline-block;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:6px 14px;margin-right:8px;text-align:center}
     .stat-box .n{font-size:22px;font-weight:700;color:#2563EB}
     .stat-box .l{font-size:9px;color:#64748B}
     .periodo-tag{display:inline-block;background:#DCFCE7;border:1px solid #86EFAC;border-radius:4px;padding:2px 8px;margin:2px;font-size:9px}
+    .fest-tag{display:inline-block;background:#FEF2F2;border:1px solid #FECACA;border-radius:4px;padding:2px 8px;margin:2px;font-size:9px;color:#EF4444}
     @media print{@page{margin:10mm}}
   </style>
   <h1>📅 Calendario Ferie ${anno}</h1>
@@ -863,6 +880,14 @@ function stampaPDF(){
   <div style="margin-bottom:12px">
     <div class="stat-box"><div class="n">${totFerie}</div><div class="l">Giorni ferie</div></div>
     <div class="stat-box"><div class="n">${periodi.length}</div><div class="l">Periodi</div></div>
+    <div class="stat-box"><div class="n">${totFestivita}</div><div class="l">Festività</div></div>
+  </div>
+  <h2>Festività ${anno}</h2>
+  <div style="margin-bottom:10px">
+    ${tuttiGiorni.map(([iso,nome])=>{
+      const d=isoToDate(iso);
+      return `<span class="fest-tag">🎉 ${d.toLocaleDateString('it-IT',{day:'2-digit',month:'long'})} — ${nome}</span>`;
+    }).join('')}
   </div>`;
 
   // Griglia 12 mesi
@@ -907,14 +932,30 @@ function stampaPDF(){
     });
   }
 
-  // Tabella riepilogo mensile
+  // Tabella riepilogo mensile con festività per nome
   html+=`<h2>Riepilogo mensile</h2>
   <table class="riepilogo">
-    <tr><th>Mese</th><th>Giorni ferie</th><th>Festività</th><th>Weekend</th><th>Note</th></tr>`;
+    <tr><th>Mese</th><th>Giorni ferie</th><th>Festività</th><th>Weekend</th><th>Giorni ferie (dettaglio)</th></tr>`;
   for(let m=0;m<12;m++){
-    const pm=perMese[m]||{lav:0,fest:0,wkd:0};
-    html+=`<tr><td>${MESI[m]}</td><td>${pm.lav||0}</td><td>${pm.fest||0}</td><td>${pm.wkd||0}</td>
-      <td>${(pm.ferie||[]).slice(0,5).map(g=>isoToDate(g).getDate()+' '+MESI[parseInt(g.split('-')[1])-1].substring(0,3)).join(', ')}</td></tr>`;
+    const pm=perMese[m]||{lav:0,fest:0,wkd:0,nomiFest:[]};
+    // raccogli nomi festività del mese
+    const nomiFestMese=[];
+    const totalGiorni=new Date(anno,m+1,0).getDate();
+    for(let g=1;g<=totalGiorni;g++){
+      const iso=isoDate(new Date(anno,m,g));
+      if(fx[iso])nomiFestMese.push(`${g} ${fx[iso]}`);
+    }
+    const dettaglioFerie=(pm.ferie||[]).map(g=>{
+      const d=isoToDate(g);
+      return d.getDate()+' '+['Lu','Ma','Me','Gi','Ve'][d.getDay()-1];
+    }).join(', ');
+    const festCell=nomiFestMese.length
+      ?`<span style="color:#EF4444">${nomiFestMese.join(', ')}</span>`
+      :`<span style="color:#94A3B8">—</span>`;
+    html+=`<tr><td><b>${MESI[m]}</b></td><td style="text-align:center">${pm.lav||0}</td>
+      <td>${festCell}</td>
+      <td style="text-align:center">${pm.wkd||0}</td>
+      <td style="color:#64748B">${dettaglioFerie||'—'}</td></tr>`;
   }
   html+='</table>';
 
