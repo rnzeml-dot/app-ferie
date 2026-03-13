@@ -326,8 +326,30 @@
       </div>
       <div>
         <h3>Riepilogo anno <span id="statAnno">—</span></h3>
-        <div class="stat-row"><span>Giorni ferie</span><span class="stat-val" id="statAppr">—</span></div>
-        <div class="stat-row"><span>Ore permessi</span><span class="stat-val" id="statOrePermessi" style="color:var(--azzurro)">—</span></div>
+        <div class="stat-row">
+          <span>Ferie usate</span>
+          <span style="display:flex;align-items:center;gap:4px">
+            <span class="stat-val" id="statAppr">—</span>
+            <span id="statFerieBudget" style="font-size:11px;color:var(--debole)"></span>
+          </span>
+        </div>
+        <div id="statFerieBarRow" style="display:none;padding:2px 0 6px">
+          <div style="height:5px;border-radius:3px;background:var(--bordo);overflow:hidden">
+            <div id="statFerieBar" style="height:100%;border-radius:3px;background:var(--verde);transition:width .3s"></div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <span>Permessi usati</span>
+          <span style="display:flex;align-items:center;gap:4px">
+            <span class="stat-val" id="statOrePermessi" style="color:var(--azzurro)">—</span>
+            <span id="statPermessiBudget" style="font-size:11px;color:var(--debole)"></span>
+          </span>
+        </div>
+        <div id="statPermessiBarRow" style="display:none;padding:2px 0 6px">
+          <div style="height:5px;border-radius:3px;background:var(--bordo);overflow:hidden">
+            <div id="statPermessiBar" style="height:100%;border-radius:3px;background:var(--azzurro);transition:width .3s"></div>
+          </div>
+        </div>
         <div class="stat-row"><span>Selezionati</span><span class="stat-val" id="statSel">—</span></div>
         <div class="stat-row" id="statAttesaRow" style="display:none">
           <span>In attesa</span><span class="notif-badge" id="statAttesa">0</span>
@@ -370,6 +392,8 @@
               <div class="tdrop-sep"></div>
               <button class="tdrop-item" onclick="apriAggiungiRisorsa();chiudiTeamMenu()">➕ Aggiungi risorsa</button>
               <button class="tdrop-item danger" onclick="apriRimuoviRisorsa();chiudiTeamMenu()">🗑 Rimuovi risorsa</button>
+              <div class="tdrop-sep"></div>
+              <button class="tdrop-item" onclick="apriImportaBudget();chiudiTeamMenu()">📥 Importa budget ferie</button>
             </div>
           </div>
         </span>
@@ -402,6 +426,37 @@
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayPeriodo')">Annulla</button>
       <button class="btn btn-verde"  onclick="confermaPeriodo()">✓ Aggiungi al calendario</button>
+    </div>
+  </div>
+</div>
+
+<!-- Importa budget -->
+<div class="overlay" id="overlayImportaBudget">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hdr" style="background:var(--verde)">
+      <h2>📥 Importa budget ferie e permessi</h2>
+      <p>Carica un file Excel (.xlsx) o CSV con i tetti annuali per ogni risorsa</p>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blu-light);border:1px solid var(--bordo);border-radius:8px;padding:12px;font-size:12px;margin-bottom:4px">
+        <b>Formato atteso:</b> colonne <code>Nome</code>, <code>FerieDisponibili</code>, <code>OrePermessiDisponibili</code><br>
+        Il nome deve corrispondere esattamente a quello nel sistema (maiuscolo).
+      </div>
+      <div class="field">
+        <label>Anno di riferimento</label>
+        <input type="number" id="importaBudgetAnno" min="2024" max="2040" style="width:100px"/>
+      </div>
+      <div class="field">
+        <label>File Excel o CSV</label>
+        <input type="file" id="importaBudgetFile" accept=".xlsx,.xls,.csv"
+          style="border:2px dashed var(--bordo);border-radius:8px;padding:16px;width:100%;background:var(--grigio);cursor:pointer"/>
+      </div>
+      <div id="importaBudgetPreview" style="display:none;margin-top:4px"></div>
+      <div id="importaBudgetMsg" class="msg-err"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-grigio" onclick="chiudiModal('overlayImportaBudget')">Annulla</button>
+      <button class="btn btn-verde" id="btnConfermaImport" onclick="confermaImportaBudget()" disabled style="opacity:.4">✓ Importa budget</button>
     </div>
   </div>
 </div>
@@ -633,12 +688,13 @@ const PATH_CONFIG    = 'data/config.json';
 const PATH_FERIE     = 'data/ferie.json';
 const PATH_RICHIESTE = 'data/richieste.json';
 const PATH_PERMESSI  = 'data/permessi.json';
+const PATH_BUDGET    = 'data/budget.json';
 
 /* ═══════════════════════════════════════════════════════════════════
    STATO GLOBALE
 ═══════════════════════════════════════════════════════════════════ */
 let GH_OWNER='', GH_REPO='', GH_TOKEN='';
-let utenteCorrente=null, teamData=[], ferieLocali=new Set(), permessiLocali={}; // permessiLocali: {iso: ore}
+let utenteCorrente=null, teamData=[], ferieLocali=new Set(), permessiLocali={}, budgetAnno={}; // budgetAnno: {Nome:{FerieDisponibili,OrePermessiDisponibili}}
 let rangeMode=false, rangeStart=null, rifiutoTarget=null, primAccesso=false;
 let vistaTeamData=null; // cache per il PDF team
 const fileSha={};
@@ -775,6 +831,8 @@ async function doLogin(){
   if(membro.Ruolo!=='caporeparto')document.getElementById('toolbarRisorsa').classList.remove('hidden');
   document.getElementById('annoInput').value=new Date().getFullYear();
   await caricaFerie();disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  await caricaBudget(new Date().getFullYear());
+  aggiornaStatobar(); // ridisegna con budget caricato
   await caricaStatiRichieste(new Date().getFullYear());
   await controllaNotifiche();
   if(primAccesso)setTimeout(()=>apriCambioPassword(true),400);
@@ -826,6 +884,119 @@ async function caricaPermessi(){
       permessiLocali=data[utenteCorrente.Title][anno];
   }catch(e){console.error('caricaPermessi:',e);}
 }
+async function caricaBudget(anno){
+  try{
+    const data=await ghGetFile(PATH_BUDGET);
+    budgetAnno[anno]=(data&&data[String(anno)])||{};
+  }catch(e){budgetAnno[anno]={};}
+}
+
+function apriImportaBudget(){
+  document.getElementById('importaBudgetAnno').value=new Date().getFullYear();
+  document.getElementById('importaBudgetFile').value='';
+  document.getElementById('importaBudgetPreview').style.display='none';
+  document.getElementById('importaBudgetPreview').innerHTML='';
+  document.getElementById('importaBudgetMsg').textContent='';
+  document.getElementById('btnConfermaImport').disabled=true;
+  document.getElementById('btnConfermaImport').style.opacity='.4';
+  apriModal('overlayImportaBudget');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const fileInput=document.getElementById('importaBudgetFile');
+  if(fileInput) fileInput.addEventListener('change', leggiFileBudget);
+});
+
+let budgetImportDati=null;
+async function leggiFileBudget(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const msg=document.getElementById('importaBudgetMsg');
+  const preview=document.getElementById('importaBudgetPreview');
+  msg.textContent='';preview.style.display='none';preview.innerHTML='';
+  budgetImportDati=null;
+  document.getElementById('btnConfermaImport').disabled=true;
+  document.getElementById('btnConfermaImport').style.opacity='.4';
+
+  try{
+    let righe=[];
+    if(file.name.endsWith('.csv')){
+      const testo=await file.text();
+      righe=testo.split('\n').map(r=>r.split(/[,;]/).map(c=>c.trim().replace(/^"|"$/g,'')));
+    } else {
+      // Excel via SheetJS
+      const ab=await file.arrayBuffer();
+      const XLSX=await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
+      const wb=XLSX.read(ab);
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      righe=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    }
+
+    if(righe.length<2){msg.textContent='File vuoto o non valido.';return;}
+
+    // Trova indici colonne (case-insensitive, trim)
+    const hdr=righe[0].map(h=>String(h).trim().toLowerCase());
+    const iNome=hdr.findIndex(h=>h==='nome');
+    const iFerie=hdr.findIndex(h=>h==='feriedisponibili'||h==='ferie disponibili'||h==='ferie_disponibili');
+    const iPerm=hdr.findIndex(h=>h==='orepermessidisponibili'||h==='ore permessi disponibili'||h==='ore_permessi_disponibili');
+
+    if(iNome<0||iFerie<0||iPerm<0){
+      msg.textContent=`Colonne non trovate. Trovato: ${righe[0].join(', ')}. Atteso: Nome, FerieDisponibili, OrePermessiDisponibili`;
+      return;
+    }
+
+    const dati={};
+    const errori=[];
+    for(let i=1;i<righe.length;i++){
+      const r=righe[i];
+      const nome=String(r[iNome]||'').trim().toUpperCase();
+      const ferie=parseInt(r[iFerie]);
+      const perm=parseInt(r[iPerm]);
+      if(!nome)continue;
+      const trovato=teamData.find(m=>m.Title.toUpperCase()===nome);
+      if(!trovato){errori.push(`⚠ "${nome}" non trovato nel team`);continue;}
+      if(isNaN(ferie)||isNaN(perm)){errori.push(`⚠ "${nome}" valori non validi`);continue;}
+      dati[trovato.Title]={FerieDisponibili:ferie,OrePermessiDisponibili:perm};
+    }
+
+    if(!Object.keys(dati).length){msg.textContent='Nessun dato valido trovato nel file.';return;}
+
+    // Anteprima
+    budgetImportDati=dati;
+    let html=`<div style="font-size:12px;font-weight:700;color:var(--verde);margin-bottom:6px">✓ ${Object.keys(dati).length} righe valide trovate</div>`;
+    html+=`<div style="max-height:160px;overflow-y:auto;border:1px solid var(--bordo);border-radius:6px;font-size:12px">`;
+    Object.entries(dati).forEach(([n,v])=>{
+      html+=`<div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--bordo)">
+        <span>${n}</span>
+        <span style="color:var(--verde);font-weight:700">${v.FerieDisponibili}gg ferie</span>
+        <span style="color:var(--azzurro);font-weight:700">${v.OrePermessiDisponibili}h permessi</span>
+      </div>`;
+    });
+    html+='</div>';
+    if(errori.length) html+=`<div style="margin-top:8px;font-size:11px;color:var(--ambra)">${errori.join('<br>')}</div>`;
+    preview.innerHTML=html;preview.style.display='';
+    document.getElementById('btnConfermaImport').disabled=false;
+    document.getElementById('btnConfermaImport').style.opacity='1';
+  }catch(err){msg.textContent='Errore lettura file: '+err.message;}
+}
+
+async function confermaImportaBudget(){
+  if(!budgetImportDati){return;}
+  const anno=String(document.getElementById('importaBudgetAnno').value);
+  const msg=document.getElementById('importaBudgetMsg');
+  msg.textContent='';
+  try{
+    const data=(await ghGetFile(PATH_BUDGET))||{};
+    data[anno]=data[anno]||{};
+    Object.assign(data[anno],budgetImportDati);
+    await ghSaveFile(PATH_BUDGET,data,`Budget ${anno} importato`);
+    budgetAnno[parseInt(anno)]=data[anno];
+    chiudiModal('overlayImportaBudget');
+    toast(`Budget ${anno} importato per ${Object.keys(budgetImportDati).length} persone`,'verde');
+    aggiornaStatobar(); // aggiorna contatori subito
+  }catch(e){msg.textContent='Errore salvataggio: '+e.message;}
+}
+
 function apriPermesso(){
   const anno=document.getElementById('annoInput').value;
   const oggi=isoDate(new Date());
@@ -907,6 +1078,40 @@ function aggiornaStatobar(){
   document.getElementById('statAppr').textContent=appr;
   document.getElementById('statOrePermessi').textContent=oreP>0?oreP+'h':'0h';
   document.getElementById('statSel').textContent=sel;
+
+  // Budget disponibile
+  const nome=utenteCorrente?.Title;
+  const budget=(budgetAnno[anno]&&budgetAnno[anno][nome])||null;
+  const ferBudEl=document.getElementById('statFerieBudget');
+  const permBudEl=document.getElementById('statPermessiBudget');
+  const ferBarRow=document.getElementById('statFerieBarRow');
+  const permBarRow=document.getElementById('statPermessiBarRow');
+  const ferBar=document.getElementById('statFerieBar');
+  const permBar=document.getElementById('statPermessiBar');
+
+  if(budget&&budget.FerieDisponibili){
+    const tot=budget.FerieDisponibili;
+    const rimanenti=Math.max(0,tot-appr);
+    const perc=Math.min(100,Math.round(appr/tot*100));
+    const colore=perc>=100?'var(--rosso)':perc>=80?'var(--ambra)':'var(--verde)';
+    ferBudEl.textContent=`/ ${tot}gg (${rimanenti} rimast${rimanenti===1?'o':'i'})`;
+    ferBar.style.width=perc+'%';ferBar.style.background=colore;
+    ferBarRow.style.display='';
+  } else {
+    ferBudEl.textContent='';ferBarRow.style.display='none';
+  }
+
+  if(budget&&budget.OrePermessiDisponibili){
+    const tot=budget.OrePermessiDisponibili;
+    const rimanenti=Math.max(0,tot-oreP);
+    const perc=Math.min(100,Math.round(oreP/tot*100));
+    const colore=perc>=100?'var(--rosso)':perc>=80?'var(--ambra)':'var(--azzurro)';
+    permBudEl.textContent=`/ ${tot}h (${rimanenti}h rimanenti)`;
+    permBar.style.width=perc+'%';permBar.style.background=colore;
+    permBarRow.style.display='';
+  } else {
+    permBudEl.textContent='';permBarRow.style.display='none';
+  }
 }
 
 let dettaglioAperto=true;
@@ -954,8 +1159,11 @@ function aggiornaSidebar(){
 }
 
 async function ridisegna(){
-  await caricaFerie();disegnaCal();aggiornaStatobar();aggiornaSidebar();
-  await caricaStatiRichieste(parseInt(document.getElementById('annoInput').value));
+  const anno=parseInt(document.getElementById('annoInput').value);
+  await caricaFerie();
+  await caricaBudget(anno);
+  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  await caricaStatiRichieste(anno);
 }
 
 function disegnaCal(){
