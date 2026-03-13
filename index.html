@@ -1659,6 +1659,7 @@ async function eseguiRimozione(tipo,conRichiesta){
   disegnaCal();aggiornaStatobar();aggiornaSidebar();
   if(!conRichiesta)toast(`${tipo==='ferie'?'Ferie':'Permessi'} rimoss${tipo==='ferie'?'e':'i'} localmente`,'rosso');
 }
+function toggleChipFiltro(title, event){
   if(!vistaTeamData)return;
   if(filtroAttivo.has(title)){
     filtroAttivo.delete(title);
