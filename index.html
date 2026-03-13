@@ -289,7 +289,7 @@
         </div>
         <div class="sep"></div>
         <button class="btn btn-verde"  onclick="apriPeriodo()">+ Aggiungi</button>
-        <button class="btn btn-range"  id="btnRange" onclick="toggleRange()">⊞ Periodo</button>
+        <button class="btn btn-blu"    onclick="apriPeriodo()">⊞ Periodo</button>
         <button class="btn btn-rosso"  onclick="rimuoviFerie()">✕ Rimuovi tutto</button>
         <button class="btn btn-blu"    onclick="salvaFerie()">↓ Salva</button>
         <button class="btn btn-pdf"    onclick="stampaPDF()">🖨 Stampa PDF</button>
@@ -317,17 +317,18 @@
 <!-- Aggiungi periodo -->
 <div class="overlay" id="overlayPeriodo">
   <div class="modal">
-    <div class="modal-hdr"><h2>📅 Aggiungi periodo ferie</h2></div>
+    <div class="modal-hdr"><h2>⊞ Aggiungi periodo ferie</h2><p>Seleziona l'intervallo di date — weekend e festività vengono esclusi automaticamente</p></div>
     <div class="modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="field"><label>Data inizio</label><input type="date" id="periodoIni"/></div>
-        <div class="field"><label>Data fine</label><input type="date" id="periodoFin"/></div>
+        <div class="field"><label>Data inizio</label><input type="date" id="periodoIni" onchange="anteprima()"/></div>
+        <div class="field"><label>Data fine</label><input type="date" id="periodoFin" onchange="anteprima()"/></div>
       </div>
+      <div id="periodoAnteprima" style="display:none;background:var(--blu-light);border:1px solid var(--blu);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:4px"></div>
       <div id="periodoMsg" class="msg-err"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayPeriodo')">Annulla</button>
-      <button class="btn btn-verde"  onclick="confermaPeriodo()">Aggiungi</button>
+      <button class="btn btn-verde"  onclick="confermaPeriodo()">✓ Aggiungi al calendario</button>
     </div>
   </div>
 </div>
@@ -667,7 +668,7 @@ function aggiornaSidebar(){
     const nomiFest=[];
     for(let g=1;g<=totalGiorni;g++){
       const d=new Date(anno,m-1,g),iso=isoDate(d);
-      if(fx[iso])nomiFest.push(fx[iso]);
+      if(fx[iso])nomiFest.push(`${g} ${fx[iso]}`);
       else if(d.getDay()===0||d.getDay()===6)wkd++;
       else if(ferieLocali.has(iso))ferie++;
     }
@@ -772,10 +773,31 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&rangeMode)attivaRan
    PERIODO / PULIZIA
 ═══════════════════════════════════════════════════════════════════ */
 function apriPeriodo(){
-  document.getElementById('periodoIni').value='';
+  const anno=document.getElementById('annoInput').value;
+  const oggi=isoDate(new Date());
+  document.getElementById('periodoIni').value=oggi>anno+'-01-01'?oggi:anno+'-01-01';
   document.getElementById('periodoFin').value='';
   document.getElementById('periodoMsg').textContent='';
+  document.getElementById('periodoAnteprima').style.display='none';
   apriModal('overlayPeriodo');
+}
+function anteprima(){
+  const ini=document.getElementById('periodoIni').value,fin=document.getElementById('periodoFin').value;
+  const prev=document.getElementById('periodoAnteprima');
+  if(!ini||!fin||ini>fin){prev.style.display='none';return;}
+  const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
+  const d1=isoToDate(ini),d2=isoToDate(fin);
+  let lav=0,wkd=0,fest=0;
+  for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){
+    const s=isoDate(d);
+    if(fx[s])fest++;
+    else if(d.getDay()===0||d.getDay()===6)wkd++;
+    else lav++;
+  }
+  prev.style.display='block';
+  prev.innerHTML=`<b style="color:var(--blu)">Anteprima:</b> <b style="color:var(--verde)">${lav} giorni lavorativi</b> verranno aggiunti`+
+    (wkd?` · ${wkd} weekend esclusi`:'')+
+    (fest?` · ${fest} festività escluse`:'');
 }
 function confermaPeriodo(){
   const ini=document.getElementById('periodoIni').value,fin=document.getElementById('periodoFin').value;
@@ -894,7 +916,9 @@ function stampaPDF(){
   html+=`<h2>Calendario ${anno}</h2><div class="grid">`;
   const oggiIso=isoDate(new Date());
   for(let mese=1;mese<=12;mese++){
-    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}</div><div class="cal">`;
+    const festMese=Object.entries(fx).filter(([iso])=>parseInt(iso.split('-')[1])===mese)
+      .map(([iso,nf])=>`${parseInt(iso.split('-')[2])} ${nf}`).join(' · ');
+    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}${festMese?`<span style="font-weight:400;color:#EF4444;margin-left:5px;font-size:8px">${festMese}</span>`:''}</div><div class="cal">`;
     html+=`<div class="gh nw">W</div>`;
     GIORNI.forEach((g,i)=>html+=`<div class="gh${i>=5?' wk':''}">${g}</div>`);
     const primoGiorno=new Date(anno,mese-1,1),totalGiorni=new Date(anno,mese,0).getDate();
@@ -1234,7 +1258,9 @@ async function stampaPDFTeam(){
   html+='</div><div class="grid">';
 
   for(let mese=1;mese<=12;mese++){
-    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}</div><div class="cal">`;
+    const festMese=Object.entries(fx).filter(([iso])=>parseInt(iso.split('-')[1])===mese)
+      .map(([iso,nf])=>`${parseInt(iso.split('-')[2])} ${nf}`).join(' · ');
+    html+=`<div class="mese"><div class="mese-h">${MESI[mese-1].toUpperCase()}${festMese?`<span style="font-weight:400;color:#EF4444;margin-left:4px;font-size:7px">${festMese}</span>`:''}</div><div class="cal">`;
     html+=`<div class="gh nw">W</div>`;
     GIORNI.forEach((g,i)=>html+=`<div class="gh${i>=5?' wk':''}">${g}</div>`);
     const primoGiorno=new Date(anno,mese-1,1),totalGiorni=new Date(anno,mese,0).getDate();
@@ -1263,11 +1289,34 @@ async function stampaPDFTeam(){
   }
   html+='</div>';
 
-  // Tabella riepilogo team
+  // Sezione festività per esteso
+  const tuttiGiorniFest=Object.entries(fx).sort(([a],[b])=>a.localeCompare(b));
+  html+=`<h2>Festività ${anno}</h2>
+  <div style="margin-bottom:10px">
+    ${tuttiGiorniFest.map(([iso,nf])=>{
+      const d=isoToDate(iso);
+      return `<span style="display:inline-block;background:#FEF2F2;border:1px solid #FECACA;border-radius:4px;padding:2px 7px;margin:2px;font-size:8px;color:#EF4444">🎉 ${d.toLocaleDateString('it-IT',{day:'2-digit',month:'long'})} — ${nf}</span>`;
+    }).join('')}
+  </div>`;
+
+  // Tabella riepilogo team con festività per mese
   html+=`<h2>Riepilogo giorni ferie per persona</h2>
-  <table class="tab"><tr><th>Nome</th><th>Ruolo</th>`;
+  <table class="tab">
+  <tr><th>Nome</th><th>Ruolo</th>`;
   MESI.forEach(m=>html+=`<th>${m.substring(0,3)}</th>`);
-  html+='<th>Totale</th></tr>';
+  html+='<th>Tot</th></tr>';
+  // Riga festività
+  html+='<tr style="background:#FEF2F2"><td colspan="2" style="color:#EF4444;font-weight:700">🎉 Festività</td>';
+  for(let m=0;m<12;m++){
+    const nomiFestMese=[];
+    const totalGiorni=new Date(anno,m+1,0).getDate();
+    for(let g=1;g<=totalGiorni;g++){
+      const iso=isoDate(new Date(anno,m,g));
+      if(fx[iso])nomiFestMese.push(`${g} ${fx[iso]}`);
+    }
+    html+=`<td style="color:#EF4444;font-size:7px;vertical-align:top">${nomiFestMese.join('<br>')||''}</td>`;
+  }
+  html+='<td></td></tr>';
   membri.forEach(m=>{
     const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
     const perMese=new Array(12).fill(0);
