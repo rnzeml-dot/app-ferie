@@ -156,6 +156,9 @@
   .giorno.permesso-rif    { background:#A5F3FC; color:#164E63; font-weight:700; text-decoration:line-through; }
   .giorno.ferie.permesso  { background:linear-gradient(135deg,var(--ferie-bg) 50%,var(--azzurro) 50%); }
   .giorno.sw        { background:var(--teal); color:#fff; font-weight:700; }
+  .giorno.ferie.sw  { background:var(--ferie-bg); color:#fff; font-weight:700; } /* ferie prevale su sw */
+  .giorno.permesso.sw { background:var(--azzurro); color:#fff; font-weight:700; } /* permesso prevale su sw */
+  .giorno.ferie.permesso.sw { background:linear-gradient(135deg,var(--ferie-bg) 50%,var(--azzurro) 50%); }
   .giorno.sw-attesa { background:#99F6E4; color:#134E4A; font-weight:700; }
   .giorno.sw-deroga { background:#CCFBF1; color:#134E4A; font-weight:700; border:2px dashed var(--teal); }
   .giorno.sw-rif    { background:#CCFBF1; color:#134E4A; text-decoration:line-through; }
@@ -415,26 +418,26 @@
         </div>
         <div class="sep"></div>
         <button class="btn btn-verde"  onclick="apriPeriodo()">+ Ferie</button>
-        <button class="btn btn-blu"    onclick="apriPeriodo()">⊞ Periodo</button>
         <div class="sep"></div>
         <button class="btn" style="background:var(--azzurro)" onclick="apriPermesso()">+ Permesso ore</button>
         <div class="sep"></div>
         <button class="btn" style="background:var(--teal)" onclick="apriSmartworking()">🏠 Smartworking</button>
         <div class="sep"></div>
-        <button class="btn btn-blu"    onclick="salvaFerie()">↓ Salva</button>
-        <button class="btn btn-pdf"    onclick="stampaPDF()">🖨 Stampa PDF</button>
-        <div class="sep"></div>
         <span id="toolbarManager" class="hidden" style="display:contents">
-          <div class="sep"></div>
           <button class="btn btn-blu"   onclick="apriRichieste()">≡ Richieste</button>
-          <button class="btn btn-teal"  onclick="apriVistaTeam()">⊛ Vista team</button>
+          <div class="team-menu-wrap">
+            <button class="btn btn-teal" onclick="toggleVistaTeamMenu(event)">⊛ Vista team ▾</button>
+            <div class="team-dropdown" id="vistaTeamDropdown">
+              <button class="tdrop-item" onclick="apriVistaTeam();chiudiVistaTeamMenu()">⊛ Vista globale team</button>
+              <div class="tdrop-sep"></div>
+              <button class="tdrop-item" onclick="apriVistaRisorsa();chiudiVistaTeamMenu()">👤 Vista singola risorsa</button>
+            </div>
+          </div>
           <button class="btn" style="background:#7C3AED" onclick="apriDashboard()">📊 Dashboard</button>
           <div class="team-menu-wrap">
             <button class="btn btn-viola" onclick="toggleTeamMenu(event)">⚙ Team ▾</button>
             <div class="team-dropdown" id="teamDropdown">
               <button class="tdrop-item" onclick="apriResetPwd();chiudiTeamMenu()">🔑 Reset password</button>
-              <div class="tdrop-sep"></div>
-              <button class="tdrop-item" onclick="apriVistaRisorsa();chiudiTeamMenu()">👤 Vista risorsa</button>
               <div class="tdrop-sep"></div>
               <button class="tdrop-item" onclick="apriAggiungiRisorsa();chiudiTeamMenu()">➕ Aggiungi risorsa</button>
               <button class="tdrop-item danger" onclick="apriRimuoviRisorsa();chiudiTeamMenu()">🗑 Rimuovi risorsa</button>
@@ -442,13 +445,19 @@
               <button class="tdrop-item" onclick="apriImportaBudget();chiudiTeamMenu()">📥 Importa budget ferie</button>
             </div>
           </div>
+          <div class="sep"></div>
         </span>
         <span id="toolbarRisorsa" class="hidden" style="display:contents">
-          <div class="sep"></div>
           <button class="btn btn-ambra" onclick="apriInviaRichiesta()">▶ Invia ferie</button>
           <button class="btn" style="background:var(--azzurro)" onclick="apriInviaPermessi()">▶ Invia permessi</button>
           <button class="btn" style="background:var(--teal)" onclick="apriInviaSW()">▶ Invia SW</button>
+          <div class="sep"></div>
         </span>
+        <!-- Salva e Stampa sempre a destra -->
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-blu"  onclick="salvaFerie()">↓ Salva</button>
+          <button class="btn btn-pdf" onclick="stampaPDF()">🖨 Stampa PDF</button>
+        </div>
       </div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="statusbar" id="statusbar">Caricamento…</div>
@@ -1737,7 +1746,11 @@ function apriPopupTipo(iso){
     if(left+pw>window.innerWidth-8)popup.style.left=Math.max(8,window.innerWidth-pw-8)+'px';
     if(top+ph>window.innerHeight+window.scrollY-8)popup.style.top=(rect.top+window.scrollY-ph-6)+'px';
   });
-  setTimeout(()=>document.addEventListener('click',chiudiPopupTipo,{once:true}),0);
+  setTimeout(()=>document.addEventListener('click',e=>{
+    // Se il click è dentro il popup, non chiudere
+    if(_popupTipoEl&&_popupTipoEl.contains(e.target))return;
+    chiudiPopupTipo();
+  },{once:true}),0);
 }
 function chiudiPopupTipo(){
   if(_popupTipoEl){_popupTipoEl.remove();_popupTipoEl=null;}
@@ -1768,13 +1781,16 @@ function popupRimuoviPermesso(iso){
 }
 function popupAddSW(iso){
   chiudiPopupTipo();
-  // Apre modal SW con il giorno pre-selezionato
-  document.getElementById('swDataInizio').value=iso;
-  document.getElementById('swDataFine').value=iso;
+  // Apre modal SW navigando al mese del giorno cliccato e pre-selezionandolo
+  const anno=parseInt(document.getElementById('annoInput').value);
+  swModalAnno=anno;
+  swSelezione=new Set([iso]);
+  swModalMese=parseInt(iso.split('-')[1])-1;
   document.getElementById('swNote').value='';
   document.getElementById('swMsg').textContent='';
   apriModal('overlaySW');
-  aggiornaPrevSW();
+  swDisegnaMese();
+  swAggiornaSelezione();
 }
 function popupRimuoviSW(iso){
   chiudiPopupTipo();
@@ -3356,6 +3372,7 @@ async function apriResetPwd(){
 function chiudiTuttiMenu(){
   chiudiUserMenu();
   chiudiTeamMenu();
+  chiudiVistaTeamMenu();
 }
 function toggleTeamMenu(e){
   e.stopPropagation();
@@ -3366,6 +3383,17 @@ function toggleTeamMenu(e){
 }
 function chiudiTeamMenu(){
   document.getElementById('teamDropdown').classList.remove('open');
+}
+function toggleVistaTeamMenu(e){
+  e.stopPropagation();
+  const dd=document.getElementById('vistaTeamDropdown');
+  const isOpen=dd.classList.contains('open');
+  chiudiTuttiMenu();
+  if(!isOpen)dd.classList.add('open');
+}
+function chiudiVistaTeamMenu(){
+  const dd=document.getElementById('vistaTeamDropdown');
+  if(dd)dd.classList.remove('open');
 }
 document.addEventListener('click',()=>chiudiTuttiMenu());
 
