@@ -271,7 +271,7 @@
         </div>
       </div>
       <div id="riepilogoMensile">
-        <h3>Dettaglio mensile</h3>
+        <h3 onclick="toggleDettaglio()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none">Dettaglio mensile <span id="arrowDettaglio">▼</span></h3>
         <div id="riepilogoMensileBody"></div>
       </div>
       <div id="sideNotif" class="hidden">
@@ -383,9 +383,9 @@
     </div>
     <div class="modal-body" style="padding:12px">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px" id="teamFiltri"></div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button class="btn btn-pdf" onclick="stampaPDFTeam()">🖨 Stampa PDF team</button>
-        <button class="btn btn-grigio" id="btnTornaTeam" onclick="tornaVistaTeam()" style="display:none">← Torna al team</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <button class="btn btn-pdf" onclick="stampaPDFTeam()">🖨 Stampa PDF</button>
+        <span style="font-size:11px;color:var(--debole)">Click = selezione singola · Ctrl+Click = selezione multipla</span>
       </div>
       <div style="max-height:62vh;overflow-y:auto">
         <div class="cal-grid" id="calTeam" style="gap:8px"></div>
@@ -658,6 +658,13 @@ function aggiornaStatobar(){
   document.getElementById('statSel').textContent=sel;
 }
 
+let dettaglioAperto=true;
+function toggleDettaglio(){
+  dettaglioAperto=!dettaglioAperto;
+  document.getElementById('riepilogoMensileBody').style.display=dettaglioAperto?'':'none';
+  document.getElementById('arrowDettaglio').textContent=dettaglioAperto?'▼':'▶';
+}
+
 function aggiornaSidebar(){
   const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
   const body=document.getElementById('riepilogoMensileBody');
@@ -689,6 +696,7 @@ function aggiornaSidebar(){
     }
     body.appendChild(row);
   }
+  document.getElementById('riepilogoMensileBody').style.display=dettaglioAperto?'':'none';
 }
 
 async function ridisegna(){
@@ -946,14 +954,25 @@ function stampaPDF(){
   }
   html+='</div>';
 
-  // Periodi ferie
+  // Periodi ferie per esteso
   if(periodi.length){
-    html+=`<h2>Periodi ferie</h2>`;
+    html+=`<h2>Dettaglio periodi ferie — ${nome}</h2>
+    <table class="riepilogo">
+      <tr><th>#</th><th>Mese</th><th>Dal</th><th>Al</th><th>Giorni lavorativi</th></tr>`;
     periodi.forEach((p,i)=>{
       const da=isoToDate(p.da),a=isoToDate(p.a);
-      const gg=[...ferieLocali].filter(g=>g>=p.da&&g<=p.a&&!fx[g]).length;
-      html+=`<span class="periodo-tag">P${i+1}: ${da.toLocaleDateString('it-IT')} → ${a.toLocaleDateString('it-IT')} (${gg}gg)</span>`;
+      const gg=[...ferieLocali].filter(g=>g>=p.da&&g<=p.a&&!fx[g]).filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;}).length;
+      const meseDa=MESI[da.getMonth()];
+      const meseA=da.getMonth()===a.getMonth()?'':`/ ${MESI[a.getMonth()]}`;
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#2563EB">${i+1}</td>
+        <td><b>${meseDa}${meseA}</b></td>
+        <td>${da.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
+        <td>${a.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
+        <td style="text-align:center;font-weight:700;color:#16A34A">${gg}</td>
+      </tr>`;
     });
+    html+='</table>';
   }
 
   // Tabella riepilogo mensile con festività per nome
@@ -1114,10 +1133,13 @@ async function controllaNotifiche(){
 /* ═══════════════════════════════════════════════════════════════════
    VISTA TEAM + PDF TEAM
 ═══════════════════════════════════════════════════════════════════ */
+let filtroAttivo=new Set(); // set di Title selezionati, vuoto = tutti
+
 async function apriVistaTeam(){
   apriModal('overlayVistaTeam');
   document.getElementById('vistaTeamSottotitolo').textContent='Caricamento…';
   document.getElementById('btnTornaTeam').style.display='none';
+  filtroAttivo.clear();
   const anno=parseInt(document.getElementById('annoInput').value);
   const grid=document.getElementById('calTeam'),filtriDiv=document.getElementById('teamFiltri');
   grid.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
@@ -1127,30 +1149,96 @@ async function apriVistaTeam(){
     const fx=festivita(anno),oggi=isoDate(new Date());
     const membri=teamData.filter(m=>m.Caporeparto===utenteCorrente.Title||m.Responsabile===utenteCorrente.Title||utenteCorrente.Ruolo==='caporeparto');
     vistaTeamData={anno,fx,oggi,membri,ferieData};
-    disegnaCalTeam(vistaTeamData,null);
-    // Chip filtro per persona — click per vedere singolo calendario
+
+    // Chip per ogni membro — click toggle selezione
     membri.forEach((m,idx)=>{
       const colore=PALETTE[idx%PALETTE.length];
       const chip=document.createElement('span');
       chip.className='chip-membro';
+      chip.id=`chip-${m.id}`;
+      chip.dataset.title=m.Title;
+      chip.dataset.colore=colore;
       chip.style.cssText=`background:${colore}22;border-color:${colore};color:${colore}`;
-      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${colore};display:inline-block"></span> ${m.Title.split(' ')[0]}`;
-      chip.title=`Clicca per vedere solo ${m.Title}`;
-      chip.onclick=()=>apriCalSingolo(m,colore);
+      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${colore};display:inline-block;flex-shrink:0"></span> ${m.Title.split(' ')[0]} <span style="font-size:9px;opacity:.7">${m.Title.split(' ').slice(-1)[0]}</span>`;
+      chip.title=`Clicca per filtrare — tieni premuto Ctrl per selezionare più persone`;
+      chip.onclick=(e)=>toggleChipFiltro(m.Title, e);
       filtriDiv.appendChild(chip);
     });
+
+    // Pulsante "Tutti"
+    const btnTutti=document.createElement('button');
+    btnTutti.id='btnFiltroTutti';
+    btnTutti.className='btn btn-grigio';
+    btnTutti.style.cssText='font-size:11px;padding:3px 10px';
+    btnTutti.textContent='✕ Azzera filtro';
+    btnTutti.onclick=()=>{filtroAttivo.clear();aggiornaFiltroVisual();disegnaCalTeamFiltrato();};
+    filtriDiv.appendChild(btnTutti);
+
+    disegnaCalTeamFiltrato();
     document.getElementById('vistaTeamSottotitolo').textContent=`${membri.length} persone — Anno ${anno}`;
   }catch(e){grid.innerHTML='<p class="msg-err">Errore: '+e.message+'</p>';}
 }
 
-function disegnaCalTeam(vtd,soloPers){
-  const {anno,fx,oggi,membri,ferieData}=vtd;
+function toggleChipFiltro(title, event){
+  if(!vistaTeamData)return;
+  if(filtroAttivo.has(title)){
+    filtroAttivo.delete(title);
+    // se rimane un solo selezionato e si deseleziona, azzera tutto
+    if(filtroAttivo.size===0){filtroAttivo.clear();}
+  } else {
+    // Ctrl/Cmd = aggiungi alla selezione, click normale = selezione esclusiva
+    if(!event.ctrlKey && !event.metaKey){
+      // se era già selezionato solo lui, deseleziona tutto
+      if(filtroAttivo.size===1 && filtroAttivo.has(title)){filtroAttivo.clear();}
+      else{filtroAttivo.clear();filtroAttivo.add(title);}
+    } else {
+      filtroAttivo.add(title);
+    }
+  }
+  aggiornaFiltroVisual();
+  disegnaCalTeamFiltrato();
+}
+
+function aggiornaFiltroVisual(){
+  if(!vistaTeamData)return;
+  const nessuno=filtroAttivo.size===0;
+  const sottotitolo=document.getElementById('vistaTeamSottotitolo');
+  document.getElementById('btnTornaTeam').style.display='none';
+
+  vistaTeamData.membri.forEach((m,idx)=>{
+    const chip=document.getElementById(`chip-${m.id}`);
+    if(!chip)return;
+    const colore=PALETTE[idx%PALETTE.length];
+    const attivo=nessuno||filtroAttivo.has(m.Title);
+    chip.style.opacity=attivo?'1':'0.3';
+    chip.style.borderWidth=filtroAttivo.has(m.Title)?'2px':'1px';
+    chip.style.fontWeight=filtroAttivo.has(m.Title)?'700':'500';
+  });
+
+  if(nessuno){
+    sottotitolo.textContent=`${vistaTeamData.membri.length} persone — Anno ${vistaTeamData.anno}`;
+  } else {
+    const nomi=[...filtroAttivo].map(t=>t.split(' ')[0]).join(', ');
+    sottotitolo.textContent=`Filtro: ${nomi} — Anno ${vistaTeamData.anno}`;
+  }
+}
+
+function disegnaCalTeamFiltrato(){
+  if(!vistaTeamData)return;
+  const {anno,fx,oggi,membri,ferieData}=vistaTeamData;
   const grid=document.getElementById('calTeam');grid.innerHTML='';
+
+  const membriFiltrati=filtroAttivo.size>0
+    ?membri.filter(m=>filtroAttivo.has(m.Title))
+    :membri;
+
   const ferieTeam={};
   membri.forEach((m,idx)=>{
-    const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
-    ferieTeam[m.Title]={ferie:new Set(giorni),colore:PALETTE[idx%PALETTE.length]};
+    ferieTeam[m.Title]={ferie:new Set((ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[]),colore:PALETTE[idx%PALETTE.length]};
   });
+
+  const singolo=membriFiltrati.length===1;
+
   for(let mese=1;mese<=12;mese++){
     const card=document.createElement('div');card.className='mese-card';
     const hdr=document.createElement('div');hdr.className='mese-hdr';
@@ -1171,17 +1259,17 @@ function disegnaCalTeam(vtd,soloPers){
       else if(d.getDay()===0||d.getDay()===6)cls+=' weekend';
       if(iso===oggi)cls+=' oggi';
       el.className=cls;
-      const persone=soloPers?[soloPers]:Object.keys(ferieTeam);
-      const chi=persone.filter(n=>ferieTeam[n]&&ferieTeam[n].ferie.has(iso));
+      const chi=membriFiltrati.filter(n=>ferieTeam[n.Title]&&ferieTeam[n.Title].ferie.has(iso));
       if(chi.length){
-        if(soloPers){el.classList.add('ferie');}
-        else{
+        if(singolo){
+          el.classList.add('ferie');
+        } else {
           el.style.position='relative';el.style.paddingBottom='6px';
           const dots=document.createElement('div');
           dots.style.cssText='display:flex;justify-content:center;gap:1px;position:absolute;bottom:1px;left:0;right:0';
           chi.forEach(n=>{const dot=document.createElement('span');dot.textContent='●';
-            dot.style.cssText=`color:${ferieTeam[n].colore};font-size:7px;line-height:1`;dots.appendChild(dot);});
-          el.appendChild(dots);el.title=chi.map(n=>n.split(' ')[0]).join(', ');
+            dot.style.cssText=`color:${ferieTeam[n.Title].colore};font-size:7px;line-height:1`;dots.appendChild(dot);});
+          el.appendChild(dots);el.title=chi.map(n=>n.Title.split(' ')[0]).join(', ');
         }
       }
       riga.giorni.push(el);
@@ -1198,26 +1286,17 @@ function disegnaCalTeam(vtd,soloPers){
   }
 }
 
-function apriCalSingolo(membro,colore){
-  if(!vistaTeamData)return;
-  document.getElementById('vistaTeamSottotitolo').textContent=`📅 ${membro.Title}`;
-  document.getElementById('btnTornaTeam').style.display='inline-flex';
-  // nascondi chip
-  document.querySelectorAll('#teamFiltri .chip-membro').forEach(c=>c.classList.add('disattivo'));
-  disegnaCalTeam(vistaTeamData,membro.Title);
-}
-
 function tornaVistaTeam(){
-  if(!vistaTeamData)return;
-  document.getElementById('vistaTeamSottotitolo').textContent=`${vistaTeamData.membri.length} persone — Anno ${vistaTeamData.anno}`;
-  document.getElementById('btnTornaTeam').style.display='none';
-  document.querySelectorAll('#teamFiltri .chip-membro').forEach(c=>c.classList.remove('disattivo'));
-  disegnaCalTeam(vistaTeamData,null);
+  filtroAttivo.clear();
+  aggiornaFiltroVisual();
+  disegnaCalTeamFiltrato();
 }
 
 async function stampaPDFTeam(){
   if(!vistaTeamData){toast('Prima apri la vista team','rosso');return;}
   const {anno,fx,membri,ferieData}=vistaTeamData;
+  const membriFiltrati=filtroAttivo.size>0?membri.filter(m=>filtroAttivo.has(m.Title)):membri;
+  const titoloFiltro=filtroAttivo.size>0?` — Filtro: ${[...filtroAttivo].map(t=>t.split(' ')[0]).join(', ')}`:'';
   const oggiIso=isoDate(new Date());
   let html=`<style>
     body{font-family:Arial,sans-serif;font-size:9px;}
@@ -1244,13 +1323,13 @@ async function stampaPDFTeam(){
     .tab tr:nth-child(even) td{background:#F8FAFC}
     @media print{@page{margin:8mm;size:A4}}
   </style>
-  <h1>⊛ Calendario Team ${anno}</h1>
+  <h1>⊛ Calendario Team ${anno}${titoloFiltro}</h1>
   <p style="color:#64748B;font-size:10px;margin-bottom:8px">Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
   <div class="legenda">`;
 
   const ferieTeam={};
-  membri.forEach((m,idx)=>{
-    const colore=PALETTE[idx%PALETTE.length];
+  membriFiltrati.forEach((m,idx)=>{
+    const colore=PALETTE[membri.indexOf(m)%PALETTE.length];
     const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
     ferieTeam[m.Title]={ferie:new Set(giorni),colore};
     html+=`<span class="litem"><span class="ldot" style="background:${colore}"></span>${m.Title.split(' ')[0]} ${m.Title.split(' ').slice(-1)[0]}</span>`;
@@ -1317,7 +1396,7 @@ async function stampaPDFTeam(){
     html+=`<td style="color:#EF4444;font-size:7px;vertical-align:top">${nomiFestMese.join('<br>')||''}</td>`;
   }
   html+='<td></td></tr>';
-  membri.forEach(m=>{
+  membriFiltrati.forEach(m=>{
     const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
     const perMese=new Array(12).fill(0);
     giorni.forEach(g=>{if(!fx[g]){const d=isoToDate(g);if(d.getDay()>0&&d.getDay()<6)perMese[d.getMonth()]++;}});
@@ -1327,6 +1406,45 @@ async function stampaPDFTeam(){
     html+=`<td style="text-align:center;font-weight:700">${tot}</td></tr>`;
   });
   html+='</table>';
+
+  // Dettaglio periodi per persona
+  html+=`<h2>Dettaglio periodi ferie per persona</h2>`;
+  function raggruppaTeam(giorni,fxMap){
+    const sorted=[...giorni].filter(g=>!fxMap[g]).sort();
+    if(!sorted.length)return[];
+    const periodi=[];let inizio=sorted[0],fine=sorted[0];
+    for(let i=1;i<sorted.length;i++){
+      const prev=isoToDate(sorted[i-1]),curr=isoToDate(sorted[i]);
+      const diff=(curr-prev)/(1000*60*60*24);
+      if(diff<=3)fine=sorted[i];
+      else{periodi.push({da:inizio,a:fine});inizio=sorted[i];fine=sorted[i];}
+    }
+    periodi.push({da:inizio,a:fine});return periodi;
+  }
+  membriFiltrati.forEach(m=>{
+    const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
+    const periodi=raggruppaTeam(giorni,fx);
+    if(!periodi.length)return;
+    html+=`<div style="margin-bottom:8px">
+      <div style="background:#2563EB;color:#fff;padding:3px 8px;border-radius:4px 4px 0 0;font-size:9px;font-weight:700">${m.Title} — ${m.Ruolo}</div>
+      <table class="tab" style="border-top:none">
+        <tr><th>#</th><th>Mese</th><th>Dal</th><th>Al</th><th>Giorni</th></tr>`;
+    periodi.forEach((p,i)=>{
+      const da=isoToDate(p.da),a=isoToDate(p.a);
+      const gg=giorni.filter(g=>g>=p.da&&g<=p.a&&!fx[g]).filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;}).length;
+      const meseDa=MESI[da.getMonth()];
+      const meseA=da.getMonth()===a.getMonth()?'':`/ ${MESI[a.getMonth()]}`;
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#2563EB">${i+1}</td>
+        <td><b>${meseDa}${meseA}</b></td>
+        <td>${da.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'})}</td>
+        <td>${a.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'})}</td>
+        <td style="text-align:center;font-weight:700;color:#16A34A">${gg}</td>
+      </tr>`;
+    });
+    html+='</table></div>';
+  });
+
   apriStampa(html);
 }
 
