@@ -224,6 +224,7 @@
   .toast.azzurro{ background:var(--azzurro); }
   .toast.teal   { background:var(--teal); }
   #vistRisorsaSelect option { background:#1E3A8A; color:#fff; }
+  #storicoAnnoSel option, #storicoFiltroTipo option, #storicoFiltroStato option { background:#475569; color:#fff; }
   /* Popup tipo giorno */
   .popup-tipo { position:fixed;z-index:9999;background:#fff;border-radius:12px;
     box-shadow:0 8px 30px rgba(0,0,0,.2);padding:14px 10px 10px;min-width:190px; }
@@ -456,6 +457,7 @@
           <button class="btn" style="background:var(--teal)" onclick="apriInviaSW()">▶ Invia SW</button>
           <div class="sep"></div>
         </span>
+        <button class="btn" style="background:#475569" onclick="apriStorico()">📋 Storico</button>
         <!-- Salva e Stampa sempre a destra -->
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
           <button class="btn btn-blu"  onclick="salvaFerie()">↓ Salva</button>
@@ -652,6 +654,38 @@
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayRifiuto')">Annulla</button>
       <button class="btn btn-rosso"  onclick="confermaRifiuto()">Rifiuta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Storico richieste -->
+<div class="overlay" id="overlayStorico">
+  <div class="modal" style="max-width:720px;width:97%;max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal-hdr" style="background:#475569;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin:0">📋 Storico richieste</h2>
+        <select id="storicoAnnoSel" style="border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.2);color:#fff;padding:4px 8px;font-size:12px;font-family:var(--font)" onchange="caricaStorico()"></select>
+        <select id="storicoFiltroTipo" style="border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.2);color:#fff;padding:4px 8px;font-size:12px;font-family:var(--font)" onchange="renderStorico()">
+          <option value="">Tutti i tipi</option>
+          <option value="ferie">Ferie</option>
+          <option value="permesso">Permessi</option>
+          <option value="sw">Smartworking</option>
+          <option value="annullamento">Annullamenti</option>
+        </select>
+        <select id="storicoFiltroStato" style="border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.2);color:#fff;padding:4px 8px;font-size:12px;font-family:var(--font)" onchange="renderStorico()">
+          <option value="">Tutti gli stati</option>
+          <option value="in_attesa">In attesa</option>
+          <option value="approvata">Approvate</option>
+          <option value="rifiutata">Rifiutate</option>
+        </select>
+      </div>
+      <p id="storicoSotto" style="margin-top:4px;font-size:11px;opacity:.8"></p>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;min-height:0;padding:12px 16px">
+      <div id="storicoContenuto"></div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0">
+      <button class="btn btn-grigio" onclick="chiudiModal('overlayStorico')">Chiudi</button>
     </div>
   </div>
 </div>
@@ -2185,45 +2219,80 @@ function apriStampa(html){
 /* ═══════════════════════════════════════════════════════════════════
    RICHIESTE
 ═══════════════════════════════════════════════════════════════════ */
+// Ricalcola la classe CSS di un giorno considerando tutti gli stati locali + stati richieste
+function ricalcolaClasseGiorno(iso, statoFerie, statoPermesso, statoSW, derogaSW){
+  const el=document.querySelector(`.giorno[data-iso="${iso}"]`);
+  if(!el)return;
+  const haFerie=ferieLocali.has(iso);
+  const haPermesso=!!permessiLocali[iso];
+  const haSW=swLocali.has(iso);
+
+  // Rimuovi tutte le classi di stato
+  el.classList.remove(
+    'ferie','attesa','rifiutata',
+    'permesso','permesso-attesa','permesso-rif',
+    'sw','sw-attesa','sw-deroga','sw-rif',
+    'ferie-sw','permesso-sw','ferie-perm-sw'
+  );
+
+  // Determina classe ferie
+  let clsFerie=statoFerie==='in_attesa'?'attesa':statoFerie==='rifiutata'?'rifiutata':(haFerie?'ferie':null);
+  // Determina classe permesso
+  let clsPerm=statoPermesso==='in_attesa'?'permesso-attesa':statoPermesso==='rifiutata'?'permesso-rif':(haPermesso?'permesso':null);
+  // Determina classe SW
+  let clsSW=statoSW==='in_attesa'?(derogaSW?'sw-deroga':'sw-attesa'):statoSW==='rifiutata'?'sw-rif':(haSW?'sw':null);
+
+  // Applica combinazione
+  const haF=!!clsFerie&&clsFerie!=='attesa'&&clsFerie!=='rifiutata';
+  const haP=!!clsPerm&&clsPerm!=='permesso-attesa'&&clsPerm!=='permesso-rif';
+  const haS=!!clsSW&&clsSW!=='sw-attesa'&&clsSW!=='sw-deroga'&&clsSW!=='sw-rif';
+
+  if(clsFerie)el.classList.add(clsFerie);
+  if(clsPerm) el.classList.add(clsPerm);
+  if(clsSW)   el.classList.add(clsSW);
+
+  // Sovrapponi classi combinate per i gradienti
+  if(haF&&haP&&haS)  {el.classList.remove('ferie','permesso','sw');el.classList.add('ferie-perm-sw');}
+  else if(haF&&haS)  {el.classList.remove('ferie','sw');el.classList.add('ferie-sw');}
+  else if(haP&&haS)  {el.classList.remove('permesso','sw');el.classList.add('permesso-sw');}
+  else if(haF&&haP)  {el.classList.remove('ferie','permesso');el.classList.add('ferie','permesso');}
+
+  if(haSW||clsSW){el.style.position='relative';}
+
+  // Riaggiungi etichette se mancano
+  if(!el.querySelector('.sw-label')&&(clsSW)){
+    const lbl=document.createElement('span');lbl.className='sw-label';
+    lbl.textContent=(derogaSW&&statoSW==='in_attesa')?'SW*':'SW';el.appendChild(lbl);
+  }
+  if(!el.querySelector('.ore-label')&&permessiLocali[iso]){
+    const lbl=document.createElement('span');lbl.className='ore-label';
+    lbl.textContent=permessiLocali[iso].ore+'h';el.appendChild(lbl);
+  }
+}
+
 async function caricaStatiRichieste(anno){
   try{
     const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
     const mie=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno);
+
+    // Costruisci mappa iso → {statoFerie, statoPermesso, statoSW, derogaSW}
+    const statoMap={};
     mie.forEach(req=>{
       const tipo=req.Tipo||'ferie';
-      if(req.Stato==='in_attesa'||req.Stato==='rifiutata'||req.Stato==='approvata'){
-        (req.Giorni||[]).forEach(g=>{
-          const el=document.querySelector(`.giorno[data-iso="${g}"]`);
-          if(!el)return;
-          if(tipo==='permesso'){
-            el.classList.remove('permesso','permesso-attesa','permesso-rif');
-            if(req.Stato==='in_attesa')      el.classList.add('permesso-attesa');
-            else if(req.Stato==='rifiutata') el.classList.add('permesso-rif');
-            else                             el.classList.add('permesso');
-            if(!el.querySelector('.ore-label')&&permessiLocali[g]){
-              const lbl=document.createElement('span');lbl.className='ore-label';
-              lbl.textContent=permessiLocali[g].ore+'h';el.appendChild(lbl);
-            }
-          } else if(tipo==='sw'){
-            el.style.position='relative';
-            el.classList.remove('sw','sw-attesa','sw-deroga','sw-rif');
-            if(req.Stato==='in_attesa')      el.classList.add(req.Deroga?'sw-deroga':'sw-attesa');
-            else if(req.Stato==='rifiutata') el.classList.add('sw-rif');
-            else                             el.classList.add('sw');
-            if(!el.querySelector('.sw-label')){
-              const lbl=document.createElement('span');lbl.className='sw-label';
-              lbl.textContent=(req.Deroga&&req.Stato==='in_attesa')?'SW*':'SW';
-              el.appendChild(lbl);
-            }
-          } else {
-            el.classList.remove('ferie','attesa','rifiutata');
-            if(req.Stato==='in_attesa')      el.classList.add('attesa');
-            else if(req.Stato==='rifiutata') el.classList.add('rifiutata');
-            else                             el.classList.add('ferie');
-          }
-        });
-      }
+      if(!['in_attesa','rifiutata','approvata'].includes(req.Stato))return;
+      (req.Giorni||[]).forEach(g=>{
+        if(!statoMap[g])statoMap[g]={};
+        if(tipo==='permesso') statoMap[g].permesso=req.Stato;
+        else if(tipo==='sw'){statoMap[g].sw=req.Stato;statoMap[g].deroga=req.Deroga;}
+        else statoMap[g].ferie=req.Stato;
+      });
     });
+
+    // Applica a ogni giorno
+    Object.entries(statoMap).forEach(([iso,s])=>{
+      ricalcolaClasseGiorno(iso,s.ferie,s.permesso,s.sw,s.deroga);
+    });
+
     const inAttesa=mie.filter(r=>r.Stato==='in_attesa').reduce((t,r)=>t+(r.Giorni||[]).length,0);
     const row=document.getElementById('statAttesaRow');
     if(inAttesa>0){row.style.display='';document.getElementById('statAttesa').textContent=inAttesa;}
@@ -2246,7 +2315,8 @@ async function confermaRichiesta(){
   const msg=document.getElementById('richiestaMsg');msg.textContent='';
   try{
     const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
-    const filtered=reqs.filter(r=>!(r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&(r.Stato==='bozza'||r.Stato==='in_attesa')));
+    // Rimuovi solo le bozze/in_attesa delle FERIE (non toccare SW o permessi)
+    const filtered=reqs.filter(r=>!(r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&(r.Tipo||'ferie')==='ferie'&&(r.Stato==='bozza'||r.Stato==='in_attesa')));
     const destinatario=getDestinatario();
     if(!destinatario){toast('Errore: responsabile non trovato nel config','rosso');return;}
     filtered.push({id:Date.now(),Dipendente:utenteCorrente.Title,Responsabile:destinatario,
@@ -2257,6 +2327,103 @@ async function confermaRichiesta(){
     disegnaCal();aggiornaStatobar();await caricaStatiRichieste(anno);
   }catch(e){msg.textContent='Errore: '+e.message;}
 }
+/* ═══════════════════════════════════════════════════════════════════
+   STORICO RICHIESTE
+═══════════════════════════════════════════════════════════════════ */
+let _storicoReqs=[];
+async function apriStorico(){
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const sel=document.getElementById('storicoAnnoSel');
+  sel.innerHTML='';
+  for(let y=anno+1;y>=2024;y--){
+    const o=document.createElement('option');o.value=y;o.textContent=y;
+    if(y===anno)o.selected=true;
+    sel.appendChild(o);
+  }
+  document.getElementById('storicoContenuto').innerHTML='<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  document.getElementById('storicoFiltroTipo').value='';
+  document.getElementById('storicoFiltroStato').value='';
+  apriModal('overlayStorico');
+  await caricaStorico();
+}
+async function caricaStorico(){
+  const anno=parseInt(document.getElementById('storicoAnnoSel').value);
+  document.getElementById('storicoContenuto').innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const isManager=utenteCorrente.Ruolo==='responsabile'||utenteCorrente.Ruolo==='caporeparto';
+    // Risorsa vede le proprie inviate; manager vede anche quelle ricevute (come responsabile)
+    _storicoReqs=reqs.filter(r=>r.Anno==anno&&(
+      r.Dipendente===utenteCorrente.Title ||
+      (isManager&&r.Responsabile===utenteCorrente.Title)
+    ));
+    renderStorico();
+  }catch(e){
+    document.getElementById('storicoContenuto').innerHTML=`<p class="msg-err">Errore: ${e.message}</p>`;
+  }
+}
+function renderStorico(){
+  const filtroTipo=document.getElementById('storicoFiltroTipo').value;
+  const filtroStato=document.getElementById('storicoFiltroStato').value;
+  const isManager=utenteCorrente.Ruolo==='responsabile'||utenteCorrente.Ruolo==='caporeparto';
+  let lista=_storicoReqs.slice();
+  if(filtroTipo){
+    if(filtroTipo==='annullamento') lista=lista.filter(r=>(r.Tipo||'').startsWith('annullamento_'));
+    else lista=lista.filter(r=>(r.Tipo||'ferie')===filtroTipo&&!(r.Tipo||'').startsWith('annullamento_'));
+  }
+  if(filtroStato) lista=lista.filter(r=>r.Stato===filtroStato);
+  lista.sort((a,b)=>new Date(b.DataInvio||0)-new Date(a.DataInvio||0));
+
+  const cont=document.getElementById('storicoContenuto');
+  document.getElementById('storicoSotto').textContent=`${lista.length} richiesta/e — Anno ${document.getElementById('storicoAnnoSel').value}`;
+
+  if(!lista.length){cont.innerHTML='<p style="color:var(--debole);text-align:center;padding:20px">Nessuna richiesta trovata.</p>';return;}
+
+  const fmt=iso=>{try{return isoToDate(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});}catch{return iso;}};
+  const fmtDt=iso=>{try{return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});}catch{return '';}};
+
+  cont.innerHTML=lista.map(req=>{
+    const tipo=req.Tipo||'ferie';
+    const isAnn=tipo.startsWith('annullamento_');
+    const tipoBase=isAnn?tipo.replace('annullamento_',''):tipo;
+    const isMia=req.Dipendente===utenteCorrente.Title;
+
+    // Badge tipo
+    const colTipo=tipoBase==='permesso'?'var(--azzurro)':tipoBase==='sw'?'var(--teal)':'var(--verde)';
+    let badgeTipo=`<span class="stato-badge" style="background:${colTipo}">${isAnn?'🚫 Annull. ':''}${tipoBase==='permesso'?'Permesso':tipoBase==='sw'?'Smartworking':'Ferie'}</span>`;
+
+    // Badge stato
+    const colStato=req.Stato==='approvata'?'var(--verde)':req.Stato==='rifiutata'?'var(--rosso)':'var(--ambra)';
+    const lblStato=req.Stato==='approvata'?'✓ Approvata':req.Stato==='rifiutata'?'✗ Rifiutata':'⏳ In attesa';
+    const badgeStato=`<span class="stato-badge" style="background:${colStato}">${lblStato}</span>`;
+
+    // Badge direzione
+    const badgeDir=isMia
+      ?`<span style="font-size:10px;color:var(--debole)">↑ Inviata a ${req.Responsabile||'—'}</span>`
+      :`<span style="font-size:10px;color:#7C3AED;font-weight:600">↓ Da ${req.Dipendente}</span>`;
+
+    // Dettaglio giorni
+    const giorni=req.Giorni||[];
+    const gg=giorni.slice(0,4).map(fmt).join(', ')+(giorni.length>4?` …(+${giorni.length-4})`:'');
+    const totOre=tipoBase==='permesso'?Object.values(req.OrePerGiorno||{}).reduce((t,v)=>t+(v?.ore||0),0):0;
+    const detGiorni=tipoBase==='permesso'?`${totOre}h totali`:`${giorni.length} giorn${giorni.length===1?'o':'i'}`;
+
+    // Note e motivazione
+    const nota=req.NoteRisorsa?`<div style="font-style:italic;color:var(--debole);margin-top:2px;font-size:11px">"${req.NoteRisorsa}"</div>`:'';
+    const motiv=req.MotivazioneRifiuto?`<div style="color:var(--rosso);font-size:11px;margin-top:2px">Motivo: ${req.MotivazioneRifiuto}</div>`:'';
+    const approv=req.Approvatore&&req.DataRisposta?`<div style="font-size:10px;color:var(--debole);margin-top:2px">da ${req.Approvatore} il ${fmtDt(req.DataRisposta)}</div>`:'';
+    const dataInvio=req.DataInvio?`<div style="font-size:10px;color:var(--debole)">Inviata: ${fmtDt(req.DataInvio)}</div>`:'';
+
+    return `<div style="border:1px solid var(--bordo);border-radius:10px;padding:10px 14px;margin-bottom:8px;background:var(--card)">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        ${badgeTipo}${badgeStato}${badgeDir}
+      </div>
+      <div style="font-size:12px"><b>${detGiorni}</b>${giorni.length?' — '+gg:''}</div>
+      ${nota}${motiv}${approv}${dataInvio}
+    </div>`;
+  }).join('');
+}
+
 async function apriRichieste(){
   const body=document.getElementById('richiesteListBody');
   body.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
@@ -2381,16 +2548,89 @@ async function controllaNotifiche(){
     panel.classList.remove('hidden');list.innerHTML='';
     for(const req of nuove){
       const ok=req.Stato==='approvata';
+      const tipo=req.Tipo||'ferie';
+      const tipoLabel=tipo==='permesso'?'Permesso':tipo==='sw'?'Smartworking':tipo.startsWith('annullamento_')?'Annullamento':'Ferie';
       const div=document.createElement('div');
-      div.style.cssText=`font-size:12px;padding:6px 8px;border-radius:6px;margin-bottom:6px;background:${ok?'#F0FDF4':'#FEF2F2'};border:1px solid ${ok?'#BBF7D0':'#FECACA'}`;
-      div.innerHTML=`<b>${ok?'✅ Approvata':'❌ Rifiutata'}</b> — ${req.Anno} (${req.Giorni.length}gg)`+
-        (req.MotivazioneRifiuto?`<br><span style="color:var(--debole)">${req.MotivazioneRifiuto}</span>`:'');
+      div.style.cssText=`font-size:12px;padding:6px 10px;border-radius:6px;margin-bottom:6px;
+        background:${ok?'#F0FDF4':'#FEF2F2'};border:1px solid ${ok?'#BBF7D0':'#FECACA'};
+        cursor:pointer;transition:opacity .15s`;
+      div.title='Clicca per i dettagli';
+      div.innerHTML=`<b>${ok?'✅':'❌'} ${ok?'Approvata':'Rifiutata'}</b> — ${tipoLabel} ${req.Anno} (${(req.Giorni||[]).length}gg)
+        <span style="float:right;font-size:10px;opacity:.6">dettagli ›</span>`;
+      div.onmouseenter=()=>div.style.opacity='.75';
+      div.onmouseleave=()=>div.style.opacity='1';
+      div.onclick=()=>apriDettaglioNotifica(req);
       list.appendChild(div);
     }
-    // Marca come lette sullo stesso array già caricato (un solo fetch/save)
     nuove.forEach(n=>{ const r=reqs.find(x=>x.id===n.id); if(r) r.Letta=true; });
     await ghSaveFile(PATH_RICHIESTE,reqs,'Marca notifiche lette');
   }catch(e){console.error('notifiche:',e);}
+}
+
+function apriDettaglioNotifica(req){
+  const ok=req.Stato==='approvata';
+  const tipo=req.Tipo||'ferie';
+  const isAnn=tipo.startsWith('annullamento_');
+  const tipoBase=isAnn?tipo.replace('annullamento_',''):tipo;
+  const colore=ok?'var(--verde)':'var(--rosso)';
+  const tipoLabel=tipoBase==='permesso'?'Permesso ore':tipoBase==='sw'?'Smartworking':'Ferie';
+  const fmt=iso=>{try{return isoToDate(iso).toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'});}catch{return iso;}};
+  const fmtDt=iso=>{try{return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});}catch{return '';}};
+
+  const giorni=req.Giorni||[];
+  // Raggruppa in periodi
+  const periodi=[];let curr=null;
+  for(const g of [...giorni].sort()){
+    if(!curr){curr={da:g,a:g};}
+    else{const diff=(isoToDate(g)-isoToDate(curr.a))/(1000*60*60*24);
+      if(diff<=3)curr.a=g;else{periodi.push(curr);curr={da:g,a:g};}}
+  }
+  if(curr)periodi.push(curr);
+
+  const totOre=tipoBase==='permesso'?Object.values(req.OrePerGiorno||{}).reduce((t,v)=>t+(v?.ore||0),0):0;
+
+  // Crea popup modal inline
+  let existing=document.getElementById('_overlayNotifDett');
+  if(existing)existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='_overlayNotifDett';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+
+  const rows=periodi.map(p=>p.da===p.a
+    ?`<div style="padding:3px 0;font-size:12px">📅 ${fmt(p.da)}</div>`
+    :`<div style="padding:3px 0;font-size:12px">📅 ${fmt(p.da)} → ${fmt(p.a)} <span style="color:var(--debole);font-size:11px">(${giorni.filter(g=>g>=p.da&&g<=p.a).length}gg)</span></div>`
+  ).join('');
+
+  overlay.innerHTML=`<div style="background:var(--card);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+      min-width:340px;max-width:480px;width:90%;overflow:hidden">
+    <div style="background:${colore};padding:16px 20px;border-top:3px solid ${colore}">
+      <div style="color:#fff;font-weight:700;font-size:15px">${ok?'✅ Approvata':'❌ Rifiutata'} — ${isAnn?'Annullamento ':''}${tipoLabel}</div>
+      <div style="color:rgba(255,255,255,.8);font-size:12px;margin-top:3px">Anno ${req.Anno}${tipoBase==='permesso'?' — '+totOre+'h totali':' — '+giorni.length+' giorn'+(giorni.length===1?'o':'i')}</div>
+    </div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--blu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Dettaglio giorni</div>
+        <div style="background:var(--grigio);border-radius:8px;padding:8px 12px;max-height:160px;overflow-y:auto">${rows||'<span style="color:var(--debole);font-size:12px">Nessun giorno</span>'}</div>
+      </div>
+      ${ok
+        ?`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 12px;font-size:12px">
+            <b style="color:var(--verde)">Approvata da:</b> ${req.Approvatore||'—'}
+            ${req.DataRisposta?`<br><span style="color:var(--debole)">il ${fmtDt(req.DataRisposta)}</span>`:''}
+          </div>`
+        :`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 12px;font-size:12px">
+            <b style="color:var(--rosso)">Rifiutata da:</b> ${req.Approvatore||'—'}
+            ${req.DataRisposta?`<br><span style="color:var(--debole)">il ${fmtDt(req.DataRisposta)}</span>`:''}
+            ${req.MotivazioneRifiuto?`<br><br><b>Motivazione:</b> ${req.MotivazioneRifiuto}`:''}
+          </div>`
+      }
+      ${req.NoteRisorsa?`<div style="font-size:11px;color:var(--debole);font-style:italic">Nota inviata: "${req.NoteRisorsa}"</div>`:''}
+    </div>
+    <div style="padding:10px 20px;background:var(--grigio);display:flex;justify-content:flex-end">
+      <button class="btn btn-grigio" onclick="document.getElementById('_overlayNotifDett').remove()">Chiudi</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
