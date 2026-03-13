@@ -1753,119 +1753,159 @@ async function apriRimuoviDati(tipo){
   const msg=document.getElementById('rimuoviMsg');
   msg.textContent='';
 
+  // Recupera i giorni disponibili e lo stato approvato
+  let giorniDisponibili=[];
+  let giorniApprovati=new Set();
+  let reqs=[];
+  try{ reqs=(await ghGetFile(PATH_RICHIESTE))||[]; }catch(e){}
+
   if(tipo==='ferie'){
-    const giorni=[...ferieLocali].filter(g=>g.startsWith(annoS));
-    titolo.textContent='Rimuovi ferie '+anno;
-    if(!giorni.length){toast('Nessuna feria da rimuovere','rosso');return;}
-
-    // Controlla se ci sono ferie approvate in richieste.json
-    let haApprovate=false;
-    try{
-      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
-      haApprovate=reqs.some(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&(r.Tipo||'ferie')==='ferie'&&r.Stato==='approvata');
-    }catch(e){}
-
-    if(haApprovate){
-      sotto.textContent='Alcune ferie risultano già approvate';
-      cont.innerHTML=`
-        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px;font-size:13px;margin-bottom:12px">
-          <b>⚠️ Attenzione:</b> hai ferie già approvate per il ${anno}.<br><br>
-          La rimozione locale cancellerà solo la visualizzazione sul tuo calendario.<br>
-          Per annullare le ferie approvate devi inviare una <b>richiesta di annullamento</b> al tuo responsabile.
-        </div>
-        <div style="font-size:13px;margin-bottom:8px"><b>${giorni.length} giorni</b> selezionati per la rimozione locale.</div>
-        <div class="field"><label>Motivo annullamento (per la richiesta al responsabile)</label>
-          <textarea id="rimuoviMotivo" placeholder="es. cambio programma, esigenze lavorative…"></textarea></div>`;
-      footer.innerHTML=`
-        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
-        <button class="btn btn-ambra" onclick="eseguiRimozione('ferie',false)">Solo rimozione locale</button>
-        <button class="btn btn-rosso" onclick="eseguiRimozione('ferie',true)">Invia richiesta annullamento</button>`;
-    } else {
-      sotto.textContent=`${giorni.length} giorni da rimuovere`;
-      cont.innerHTML=`
-        <div style="font-size:13px;color:var(--debole);margin-bottom:12px">
-          Stai per rimuovere tutte le ferie del ${anno} dal tuo calendario.<br>
-          <b>Questa operazione non è reversibile.</b>
-        </div>
-        <div style="font-size:13px"><b>${giorni.length} giorni</b> verranno eliminati.</div>`;
-      footer.innerHTML=`
-        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
-        <button class="btn btn-rosso" onclick="eseguiRimozione('ferie',false)">✕ Rimuovi ferie</button>`;
-    }
+    titolo.textContent='Variazione ferie '+anno;
+    giorniDisponibili=[...ferieLocali].filter(g=>g.startsWith(annoS)).sort();
+    if(!giorniDisponibili.length){toast('Nessuna feria da rimuovere','rosso');return;}
+    reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&(r.Tipo||'ferie')==='ferie'&&r.Stato==='approvata')
+      .forEach(r=>(r.Giorni||[]).forEach(g=>giorniApprovati.add(g)));
   } else {
-    const giorni=Object.keys(permessiLocali).filter(g=>g.startsWith(annoS));
-    titolo.textContent='Rimuovi permessi '+anno;
-    if(!giorni.length){toast('Nessun permesso da rimuovere','rosso');return;}
+    titolo.textContent='Variazione permessi '+anno;
+    giorniDisponibili=Object.keys(permessiLocali).filter(g=>g.startsWith(annoS)).sort();
+    if(!giorniDisponibili.length){toast('Nessun permesso da rimuovere','rosso');return;}
+    reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&r.Tipo==='permesso'&&r.Stato==='approvata')
+      .forEach(r=>(r.Giorni||[]).forEach(g=>giorniApprovati.add(g)));
+  }
 
-    let haApprovati=false;
-    try{
-      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
-      haApprovati=reqs.some(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno&&r.Tipo==='permesso'&&r.Stato==='approvata');
-    }catch(e){}
-
-    const totOre=giorni.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0);
-
-    if(haApprovati){
-      sotto.textContent='Alcuni permessi risultano già approvati';
-      cont.innerHTML=`
-        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px;font-size:13px;margin-bottom:12px">
-          <b>⚠️ Attenzione:</b> hai permessi già approvati per il ${anno}.<br><br>
-          La rimozione locale cancellerà solo la visualizzazione sul tuo calendario.<br>
-          Per annullare i permessi approvati devi inviare una <b>richiesta di annullamento</b> al tuo responsabile.
-        </div>
-        <div style="font-size:13px;margin-bottom:8px"><b>${giorni.length} giorni</b> (${totOre}h totali) selezionati per la rimozione locale.</div>
-        <div class="field"><label>Motivo annullamento (per la richiesta al responsabile)</label>
-          <textarea id="rimuoviMotivo" placeholder="es. cambio programma, esigenze lavorative…"></textarea></div>`;
-      footer.innerHTML=`
-        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
-        <button class="btn btn-ambra" onclick="eseguiRimozione('permessi',false)">Solo rimozione locale</button>
-        <button class="btn btn-rosso" onclick="eseguiRimozione('permessi',true)">Invia richiesta annullamento</button>`;
-    } else {
-      sotto.textContent=`${giorni.length} giorni — ${totOre}h totali`;
-      cont.innerHTML=`
-        <div style="font-size:13px;color:var(--debole);margin-bottom:12px">
-          Stai per rimuovere tutti i permessi del ${anno} dal tuo calendario.<br>
-          <b>Questa operazione non è reversibile.</b>
-        </div>
-        <div style="font-size:13px"><b>${giorni.length} giorni</b> (${totOre}h) verranno eliminati.</div>`;
-      footer.innerHTML=`
-        <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
-        <button class="btn btn-rosso" onclick="eseguiRimozione('permessi',false)">✕ Rimuovi permessi</button>`;
+  // Raggruppa giorni in periodi contigui (lavorativi consecutivi)
+  const periodi=[];
+  let corrente=null;
+  const fx=festivita(anno);
+  for(const g of giorniDisponibili){
+    const d=isoToDate(g);
+    if(!corrente){corrente={giorni:[g],inizio:g,fine:g};}
+    else{
+      // considera contiguo se il gap è ≤3gg (weekend/festivi in mezzo)
+      const prev=isoToDate(corrente.fine);
+      const diff=(d-prev)/(1000*60*60*24);
+      if(diff<=3) {corrente.giorni.push(g);corrente.fine=g;}
+      else{periodi.push(corrente);corrente={giorni:[g],inizio:g,fine:g};}
     }
   }
+  if(corrente)periodi.push(corrente);
+
+  const haApprovati=giorniDisponibili.some(g=>giorniApprovati.has(g));
+  sotto.textContent=`Seleziona i giorni da rimuovere — ${giorniDisponibili.length} giorn${giorniDisponibili.length===1?'o':'i'} totali`;
+
+  // Costruisci UI selezione periodi
+  const fmt=iso=>{const d=isoToDate(iso);return d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});};
+  let html=`<div style="font-size:12px;color:var(--debole);margin-bottom:10px">
+    Clicca su un periodo per selezionarlo/deselezionarlo. I giorni <span style="color:var(--rosso);font-weight:700">rossi</span> sono già approvati e richiedono una richiesta al responsabile.
+  </div>
+  <div id="periodoList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;margin-bottom:12px">`;
+
+  periodi.forEach((p,i)=>{
+    const nLav=p.giorni.length;
+    const oreLabel=tipo==='permessi'?` — ${p.giorni.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0)}h`:'';
+    const hasAppr=p.giorni.some(g=>giorniApprovati.has(g));
+    const labelAppr=hasAppr?`<span style="font-size:10px;color:var(--rosso);font-weight:700;margin-left:6px">● già approvato</span>`:'';
+    const labelRange=p.inizio===p.fine?fmt(p.inizio):`${fmt(p.inizio)} → ${fmt(p.fine)}`;
+    html+=`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--bordo);border-radius:8px;cursor:pointer;transition:background .12s"
+      onmouseover="this.style.background='var(--grigio)'" onmouseout="this.style.background=''">
+      <input type="checkbox" data-idx="${i}" class="periodo-check" style="width:16px;height:16px;cursor:pointer" onchange="aggiornaSelezioneRimozione()">
+      <span style="flex:1">
+        <b>${labelRange}</b>${labelAppr}<br>
+        <span style="font-size:11px;color:var(--debole)">${nLav} giorn${nLav===1?'o':'i'}${oreLabel}</span>
+      </span>
+    </label>`;
+  });
+
+  html+=`</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="btn btn-grigio" style="font-size:11px;padding:3px 10px" onclick="selezionaTuttiPeriodi(true)">Seleziona tutto</button>
+    <button class="btn btn-grigio" style="font-size:11px;padding:3px 10px" onclick="selezionaTuttiPeriodi(false)">Deseleziona tutto</button>
+    <span id="selezionatiCount" style="font-size:12px;color:var(--debole);margin-left:auto;align-self:center"></span>
+  </div>`;
+
+  if(haApprovati){
+    html+=`<div id="motivoBox" style="display:none">
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:8px">
+        <b>⚠️</b> Alcuni giorni selezionati sono già approvati — verrà inviata una richiesta di annullamento al responsabile.
+      </div>
+      <div class="field"><label>Motivo annullamento</label>
+        <textarea id="rimuoviMotivo" placeholder="es. cambio programma, esigenze lavorative…" style="min-height:60px"></textarea>
+      </div>
+    </div>`;
+  }
+
+  cont.innerHTML=html;
+
+  // Salva periodi per uso in eseguiRimozione
+  window._rimuoviCtx={tipo,anno,annoS,periodi,giorniApprovati,haApprovati};
+
+  footer.innerHTML=`
+    <button class="btn btn-grigio" onclick="chiudiModal('overlayRimuovi')">Annulla</button>
+    <button class="btn btn-rosso" id="btnEseguiRimozione" onclick="eseguiRimozione()" disabled style="opacity:.4">✕ Rimuovi selezionati</button>`;
+
   apriModal('overlayRimuovi');
 }
 
-async function eseguiRimozione(tipo,conRichiesta){
-  const anno=parseInt(document.getElementById('annoInput').value);
-  const annoS=String(anno);
+function selezionaTuttiPeriodi(val){
+  document.querySelectorAll('.periodo-check').forEach(c=>{c.checked=val;});
+  aggiornaSelezioneRimozione();
+}
+
+function aggiornaSelezioneRimozione(){
+  const ctx=window._rimuoviCtx;
+  if(!ctx)return;
+  const checked=[...document.querySelectorAll('.periodo-check:checked')].map(c=>parseInt(c.dataset.idx));
+  const giorniSel=checked.flatMap(i=>ctx.periodi[i].giorni);
+  const nGiorni=giorniSel.length;
+  const oreLabel=ctx.tipo==='permessi'?` — ${giorniSel.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0)}h`:'';
+  const countEl=document.getElementById('selezionatiCount');
+  if(countEl) countEl.textContent=nGiorni?`${nGiorni} giorn${nGiorni===1?'o':'i'} selezionat${nGiorni===1?'o':'i'}${oreLabel}`:'';
+
+  // Mostra box motivo solo se almeno un giorno selezionato è approvato
+  const haApprSel=giorniSel.some(g=>ctx.giorniApprovati.has(g));
+  const motivoBox=document.getElementById('motivoBox');
+  if(motivoBox) motivoBox.style.display=haApprSel?'':'none';
+
+  const btn=document.getElementById('btnEseguiRimozione');
+  if(btn){btn.disabled=!nGiorni;btn.style.opacity=nGiorni?'1':'.4';}
+}
+
+async function eseguiRimozione(){
+  const ctx=window._rimuoviCtx;
+  if(!ctx)return;
+  const {tipo,anno,annoS,periodi,giorniApprovati}=ctx;
   const msg=document.getElementById('rimuoviMsg');
   msg.textContent='';
 
-  if(conRichiesta){
+  const checked=[...document.querySelectorAll('.periodo-check:checked')].map(c=>parseInt(c.dataset.idx));
+  if(!checked.length){msg.textContent='Seleziona almeno un periodo.';return;}
+  const giorniSel=checked.flatMap(i=>periodi[i].giorni);
+  const haApprSel=giorniSel.some(g=>giorniApprovati.has(g));
+
+  if(haApprSel){
     const motivo=(document.getElementById('rimuoviMotivo')?.value||'').trim();
     if(!motivo){msg.textContent='Inserisci un motivo per la richiesta di annullamento.';return;}
     try{
       const destinatario=utenteCorrente.Ruolo==='responsabile'?utenteCorrente.Caporeparto:utenteCorrente.Responsabile;
       const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
       reqs.push({id:Date.now(),Tipo:'annullamento_'+tipo,Dipendente:utenteCorrente.Title,
-        Responsabile:destinatario,Anno:anno,Stato:'in_attesa',
-        NoteRisorsa:motivo,DataInvio:new Date().toISOString(),
+        Responsabile:destinatario,Anno:anno,Giorni:giorniSel.filter(g=>giorniApprovati.has(g)),
+        Stato:'in_attesa',NoteRisorsa:motivo,DataInvio:new Date().toISOString(),
         Approvatore:'',DataRisposta:'',MotivazioneRifiuto:'',Letta:false});
       await ghSaveFile(PATH_RICHIESTE,reqs,`Annullamento ${tipo} ${utenteCorrente.Title} ${anno}`);
       toast('Richiesta di annullamento inviata al responsabile','verde');
     }catch(e){msg.textContent='Errore invio richiesta: '+e.message;return;}
   }
 
-  // Rimozione locale
+  // Rimozione locale dei giorni selezionati
   if(tipo==='ferie'){
-    for(const g of[...ferieLocali])if(g.startsWith(annoS))ferieLocali.delete(g);
+    giorniSel.forEach(g=>ferieLocali.delete(g));
   } else {
-    for(const k of Object.keys(permessiLocali))if(k.startsWith(annoS))delete permessiLocali[k];
+    giorniSel.forEach(g=>delete permessiLocali[g]);
   }
   chiudiModal('overlayRimuovi');
   disegnaCal();aggiornaStatobar();aggiornaSidebar();
-  if(!conRichiesta)toast(`${tipo==='ferie'?'Ferie':'Permessi'} rimoss${tipo==='ferie'?'e':'i'} localmente`,'rosso');
+  toast(`${giorniSel.length} giorn${giorniSel.length===1?'o':'i'} rimoss${tipo==='ferie'?'i':'i'} localmente`,'rosso');
 }
 function toggleChipFiltro(title, event){
   if(!vistaTeamData)return;
