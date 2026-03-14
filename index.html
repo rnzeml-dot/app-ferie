@@ -1060,10 +1060,10 @@ async function doLogin(){
   if(membro.Ruolo!=='risorsa')document.getElementById('toolbarManager').classList.remove('hidden');
   if(membro.Ruolo!=='caporeparto')document.getElementById('toolbarRisorsa').classList.remove('hidden');
   document.getElementById('annoInput').value=new Date().getFullYear();
-  await caricaFerie();disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  await caricaFerie();await disegnaCal();aggiornaStatobar();aggiornaSidebar();
   await caricaBudget(new Date().getFullYear());
   aggiornaStatobar(); // ridisegna con budget caricato
-  await caricaStatiRichieste(new Date().getFullYear());
+  
   await controllaNotifiche();
   if(primAccesso)setTimeout(()=>apriCambioPassword(true),400);
 }
@@ -1413,7 +1413,7 @@ function confermaSW(){
   });
   swSelezione.clear();
   chiudiModal('overlaySW');
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
   if(adeguati>0) toast(`SW aggiunto — ${adeguati} permesso/i ridotto/i a 4h (regola 4+4)`,'teal');
   else toast('Giorni SW aggiunti','teal');
 }
@@ -1481,7 +1481,7 @@ async function confermaInviaSW(){
     await ghSaveFile(PATH_RICHIESTE,filtered,`SW ${utenteCorrente.Title} ${anno}`);
     chiudiModal('overlayInviaSW');
     toast(deroga?'Richiesta SW in deroga inviata!':'Richiesta SW inviata!','teal');
-    disegnaCal();aggiornaStatobar();await caricaStatiRichieste(anno);
+    await disegnaCal();aggiornaStatobar();aggiornaSidebar();
   }catch(e){msg.textContent='Errore: '+e.message;}
 }
 
@@ -1521,7 +1521,7 @@ function confermaPermesso(){
   document.getElementById('permessoOre').readOnly=false;
   document.getElementById('permessoOre').style.opacity='1';
   document.getElementById('permessoOre').title='';
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
   toast(`Permesso di ${ore}h aggiunto il ${d.toLocaleDateString('it-IT')}`,'azzurro');
 }
 function rimuoviPermessi(){
@@ -1529,7 +1529,7 @@ function rimuoviPermessi(){
   if(!Object.keys(permessiLocali).some(k=>k.startsWith(anno))){toast('Nessun permesso da rimuovere','rosso');return;}
   if(!confirm('Rimuovere tutti i permessi del '+anno+'?'))return;
   for(const k of Object.keys(permessiLocali))if(k.startsWith(anno))delete permessiLocali[k];
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 function apriInviaPermessi(){
   const anno=parseInt(document.getElementById('annoInput').value),fx=festivita(anno);
@@ -1552,7 +1552,7 @@ async function confermaInviaPermessi(){
       Approvatore:'',DataRisposta:'',MotivazioneRifiuto:'',Letta:false});
     await ghSaveFile(PATH_RICHIESTE,filtered,`Permessi ${utenteCorrente.Title} ${anno}`);
     toast('Richiesta permessi inviata!','verde');
-    disegnaCal();aggiornaStatobar();await caricaStatiRichieste(anno);
+    await disegnaCal();aggiornaStatobar();aggiornaSidebar();
   }catch(e){toast('Errore: '+e.message,'rosso');}
 }
 
@@ -1641,26 +1641,53 @@ function aggiornaSidebar(){
     let ferie=0,wkd=0,swMese=0;
     const nomiFest=[];
     let orePermMese=0;
+    const giorniFerie=[],giorniSW=[],giorniPerm=[];
     for(let g=1;g<=totalGiorni;g++){
       const d=new Date(anno,m-1,g),iso=isoDate(d);
       if(fx[iso])nomiFest.push(`${g} ${fx[iso]}`);
       else if(d.getDay()===0||d.getDay()===6)wkd++;
       else {
-        if(ferieLocali.has(iso))ferie++;
-        if(swLocali.has(iso))swMese++;
+        if(ferieLocali.has(iso)){ferie++;giorniFerie.push(iso);}
+        if(swLocali.has(iso)){swMese++;giorniSW.push(iso);}
       }
-      if(permessiLocali[iso])orePermMese+=permessiLocali[iso].ore||0;
+      if(permessiLocali[iso]){orePermMese+=permessiLocali[iso].ore||0;giorniPerm.push(iso);}
     }
     const row=document.createElement('div');
     row.style.cssText='padding:5px 0;border-bottom:1px solid var(--bordo);font-size:11px';
     const rigaTop=document.createElement('div');
     rigaTop.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:4px;flex-wrap:wrap';
-    rigaTop.innerHTML=
-      `<span style="font-weight:700;min-width:28px">${MESI[m-1].substring(0,3)}</span>`+
-      `<span style="color:var(--verde);font-weight:700">${ferie>0?ferie+'f':''}</span>`+
-      `<span style="color:var(--azzurro);font-weight:700">${orePermMese>0?orePermMese+'h':''}</span>`+
-      `<span style="color:var(--teal);font-weight:700">${swMese>0?swMese+'sw':''}</span>`+
-      `<span style="color:var(--debole);font-size:10px">${wkd}wkd</span>`;
+
+    // Crea span cliccabili per ferie, permesso, SW
+    const mkSpan=(testo,colore,giorni,tipo)=>{
+      if(!testo)return `<span></span>`;
+      const s=document.createElement('span');
+      s.style.cssText=`color:${colore};font-weight:700;cursor:pointer;text-decoration:underline dotted;`;
+      s.title=`Clicca per dettaglio`;
+      s.textContent=testo;
+      s.onclick=()=>apriDettaglioMese(MESI[m-1],giorni,tipo,anno);
+      return s;
+    };
+
+    const spanMese=document.createElement('span');
+    spanMese.style.cssText='font-weight:700;min-width:28px';
+    spanMese.textContent=MESI[m-1].substring(0,3);
+    rigaTop.appendChild(spanMese);
+
+    const spF=mkSpan(ferie>0?ferie+'f':'','var(--verde)',giorniFerie,'ferie');
+    const spP=mkSpan(orePermMese>0?orePermMese+'h':'','var(--azzurro)',giorniPerm,'permesso');
+    const spSW=mkSpan(swMese>0?swMese+'sw':'','var(--teal)',giorniSW,'sw');
+    const spWkd=document.createElement('span');
+    spWkd.style.cssText='color:var(--debole);font-size:10px';
+    spWkd.textContent=wkd+'wkd';
+
+    if(typeof spF==='string') rigaTop.insertAdjacentHTML('beforeend',spF);
+    else rigaTop.appendChild(spF);
+    if(typeof spP==='string') rigaTop.insertAdjacentHTML('beforeend',spP);
+    else rigaTop.appendChild(spP);
+    if(typeof spSW==='string') rigaTop.insertAdjacentHTML('beforeend',spSW);
+    else rigaTop.appendChild(spSW);
+    rigaTop.appendChild(spWkd);
+
     row.appendChild(rigaTop);
     if(nomiFest.length){
       const rigaFest=document.createElement('div');
@@ -1673,16 +1700,108 @@ function aggiornaSidebar(){
   document.getElementById('riepilogoMensileBody').style.display=dettaglioAperto?'':'none';
 }
 
+function apriDettaglioMese(nomeMese, giorni, tipo, anno){
+  let existing=document.getElementById('_overlayDettaglioMese');
+  if(existing)existing.remove();
+
+  const fmt=iso=>{
+    const d=isoToDate(iso);
+    return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric'});
+  };
+
+  const colore=tipo==='ferie'?'var(--verde)':tipo==='sw'?'var(--teal)':'var(--azzurro)';
+  const tipoLabel=tipo==='ferie'?'Ferie':tipo==='sw'?'Smartworking':'Permessi';
+  const emoji=tipo==='ferie'?'🌿':tipo==='sw'?'🏠':'🕐';
+
+  let righe='';
+  if(tipo==='permesso'){
+    righe=giorni.map(iso=>{
+      const p=permessiLocali[iso];
+      const ore=p?.ore||0;
+      const nota=p?.note?` — <span style="color:var(--debole);font-style:italic">${p.note}</span>`:'';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bordo);font-size:12px">
+        <span>${fmt(iso)}</span>
+        <span style="color:var(--azzurro);font-weight:700">${ore}h${nota}</span>
+      </div>`;
+    }).join('');
+    const totOre=giorni.reduce((t,iso)=>t+(permessiLocali[iso]?.ore||0),0);
+    righe+=`<div style="text-align:right;font-size:12px;font-weight:700;color:var(--azzurro);padding-top:6px">Totale: ${totOre}h</div>`;
+  } else {
+    // Raggruppa in periodi contigui
+    const sorted=[...giorni].sort();
+    const periodi=[];let curr=null;
+    for(const g of sorted){
+      if(!curr){curr={da:g,a:g,lista:[g]};}
+      else{
+        const diff=(isoToDate(g)-isoToDate(curr.a))/(1000*60*60*24);
+        if(diff<=3){curr.a=g;curr.lista.push(g);}
+        else{periodi.push(curr);curr={da:g,a:g,lista:[g]};}
+      }
+    }
+    if(curr)periodi.push(curr);
+
+    righe=periodi.map(p=>{
+      const fmtD=iso=>isoToDate(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric'});
+      const label=p.da===p.a?`${fmt(p.da)}`:`${fmtD(p.da)} → ${fmtD(p.a)}`;
+      const ngg=p.lista.length;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bordo);font-size:12px">
+        <span>${label}</span>
+        <span style="color:${colore};font-weight:700">${ngg}gg</span>
+      </div>`;
+    }).join('');
+    righe+=`<div style="text-align:right;font-size:12px;font-weight:700;color:${colore};padding-top:6px">Totale: ${giorni.length} giorni</div>`;
+  }
+
+  const overlay=document.createElement('div');
+  overlay.id='_overlayDettaglioMese';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML=`<div style="background:var(--card);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);min-width:320px;max-width:440px;width:92%;overflow:hidden">
+    <div style="background:${colore};padding:14px 18px">
+      <div style="color:#fff;font-weight:700;font-size:14px">${emoji} ${tipoLabel} — ${nomeMese} ${anno}</div>
+    </div>
+    <div style="padding:14px 18px;max-height:55vh;overflow-y:auto">${righe}</div>
+    <div style="padding:10px 18px;background:var(--grigio);display:flex;justify-content:flex-end">
+      <button class="btn btn-grigio" onclick="document.getElementById('_overlayDettaglioMese').remove()">Chiudi</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
 async function ridisegna(){
   const anno=parseInt(document.getElementById('annoInput').value);
   await caricaFerie();
   await caricaBudget(anno);
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
-  await caricaStatiRichieste(anno);
+  await disegnaCal();
+  aggiornaStatobar();aggiornaSidebar();
 }
 
-function disegnaCal(){
+async function disegnaCal(){
   const anno=parseInt(document.getElementById('annoInput').value),oggi=isoDate(new Date()),fx=festivita(anno);
+
+  // Carica stati richieste PRIMA di disegnare — unico passaggio, nessun doppio aggiornamento
+  const statoMap={};
+  try{
+    const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+    const mie=reqs.filter(r=>r.Dipendente===utenteCorrente.Title&&r.Anno==anno);
+    mie.forEach(req=>{
+      const tipo=req.Tipo||'ferie';
+      if(!['in_attesa','rifiutata','approvata'].includes(req.Stato))return;
+      if(tipo.startsWith('annullamento_'))return;
+      (req.Giorni||[]).forEach(g=>{
+        if(!statoMap[g])statoMap[g]={};
+        if(tipo==='permesso')    statoMap[g].permesso=req.Stato;
+        else if(tipo==='sw')    {statoMap[g].sw=req.Stato;statoMap[g].deroga=req.Deroga;}
+        else                     statoMap[g].ferie=req.Stato;
+      });
+    });
+    // Aggiorna contatore in attesa
+    const inAttesa=mie.filter(r=>r.Stato==='in_attesa').reduce((t,r)=>t+(r.Giorni||[]).length,0);
+    const row=document.getElementById('statAttesaRow');
+    if(inAttesa>0){row.style.display='';document.getElementById('statAttesa').textContent=inAttesa;}
+    else row.style.display='none';
+  }catch(e){console.error('disegnaCal richieste:',e);}
+
   const grid=document.getElementById('calGrid');grid.innerHTML='';
   for(let mese=1;mese<=12;mese++){
     const card=document.createElement('div');card.className='mese-card';
@@ -1705,28 +1824,46 @@ function disegnaCal(){
       else el.onclick=()=>apriPopupTipo(iso);
       if(iso===oggi)cls+=' oggi';
 
-      // Calcola combinazione ferie/permesso/SW con classe dedicata
-      const haFerie=ferieLocali.has(iso);
-      const haPermesso=!!permessiLocali[iso];
-      const haSW=swLocali.has(iso);
-      if(haFerie&&haPermesso&&haSW) cls+=' ferie permesso ferie-perm-sw';
-      else if(haFerie&&haSW)        cls+=' ferie ferie-sw';
-      else if(haPermesso&&haSW)     cls+=' permesso permesso-sw';
-      else if(haFerie&&haPermesso)  cls+=' ferie permesso';
-      else if(haFerie)              cls+=' ferie';
-      else if(haPermesso)           cls+=' permesso';
-      else if(haSW)                 cls+=' sw';
-      if(haSW) el.style.position='relative';
+      // Stato da richieste (ha priorità sul dato locale)
+      const s=statoMap[iso]||{};
+      // Effettivo: approvato in richiesta OPPURE presente in locale (senza richiesta pendente)
+      const effF = s.ferie==='approvata' || (!s.ferie && ferieLocali.has(iso));
+      const effP = s.permesso==='approvata' || (!s.permesso && !!permessiLocali[iso]);
+      const effSW = s.sw==='approvata' || (!s.sw && swLocali.has(iso));
+      const attesaF = s.ferie==='in_attesa';
+      const attesaP = s.permesso==='in_attesa';
+      const attesaSW = s.sw==='in_attesa';
+      const rifF = s.ferie==='rifiutata';
+      const rifP = s.permesso==='rifiutata';
+
+      // Assegna classe combinata
+      if(effF&&effP&&effSW)      cls+=' ferie-perm-sw';
+      else if(effF&&effSW)       cls+=' ferie-sw';
+      else if(effP&&effSW)       cls+=' permesso-sw';
+      else if(effF&&effP)        cls+=' ferie permesso';
+      else if(effF&&attesaSW)    cls+=' ferie sw-attesa';
+      else if(effP&&attesaSW)    cls+=' permesso sw-attesa';
+      else if(effF)              cls+=' ferie';
+      else if(effP)              cls+=' permesso';
+      else if(effSW)             cls+=' sw';
+      else if(attesaF)           cls+=' attesa';
+      else if(attesaP)           cls+=' permesso-attesa';
+      else if(attesaSW)          cls+=' '+(s.deroga?'sw-deroga':'sw-attesa');
+      else if(rifF)              cls+=' rifiutata';
+      else if(rifP)              cls+=' permesso-rif';
+      else if(s.sw==='rifiutata')cls+=' sw-rif';
+
+      if(effSW||attesaSW||s.sw==='rifiutata') el.style.position='relative';
       el.className=cls;el.dataset.iso=iso;
       if(fx[iso])el.title=fx[iso];
-      if(permessiLocali[iso]){
+      if((effP||attesaP)&&permessiLocali[iso]){
         const lbl=document.createElement('span');lbl.className='ore-label';
         lbl.textContent=permessiLocali[iso].ore+'h';el.appendChild(lbl);
         el.title=(permessiLocali[iso].note||'')+` (${permessiLocali[iso].ore}h)`;
       }
-      if(haSW){
+      if(effSW||attesaSW||s.sw==='rifiutata'){
         const lbl=document.createElement('span');lbl.className='sw-label';
-        lbl.textContent='SW';el.appendChild(lbl);
+        lbl.textContent=(s.deroga&&attesaSW)?'SW*':'SW';el.appendChild(lbl);
       }
       riga.giorni.push(el);
     }
@@ -1755,7 +1892,7 @@ function toggleGiorno(iso){
         const s=isoDate(d);
         if(d.getDay()!==0&&d.getDay()!==6&&!fx[s]&&s.startsWith(anno))ferieLocali.add(s);
       }
-      rangeStart=null;attivaRange(false);disegnaCal();aggiornaStatobar();aggiornaSidebar();
+      rangeStart=null;attivaRange(false);disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
     }
     return;
   }
@@ -1785,38 +1922,28 @@ function apriPopupTipo(iso){
   // ferie+SW = mezza giornata ferie + mezza SW (logica informativa, non blocchiamo ferie)
   let html=`<div class="popup-tipo-title">${nomeGiorno}</div>`;
 
-  // AGGIUNGI
+  // AGGIUNGI — mostra solo le voci che hanno senso
   if(!haFerie && !haPermesso){
-    // Giorno libero o solo SW: posso aggiungere ferie o permesso
     html+=`<button class="popup-tipo-btn" onclick="popupAddFerie('${iso}')">
       <span class="popup-tipo-dot" style="background:var(--verde)"></span>Aggiungi ferie</button>`;
   }
   if(!haFerie && !haPermesso && !haSW){
-    // Giorno libero: posso aggiungere permesso libero
     html+=`<button class="popup-tipo-btn" onclick="popupAddPermesso('${iso}',false)">
       <span class="popup-tipo-dot" style="background:var(--azzurro)"></span>Aggiungi permesso ore</button>`;
   }
   if(!haFerie && !haPermesso && haSW){
-    // SW presente → permesso bloccato a 4h (mezza giornata)
     html+=`<button class="popup-tipo-btn" onclick="popupAddPermesso('${iso}',true)">
       <span class="popup-tipo-dot" style="background:var(--azzurro)"></span>Aggiungi permesso <b>4h</b> <span style="font-size:10px;opacity:.7">(mezza giornata)</span></button>`;
   }
-  if(haFerie && !haSW){
-    // Ferie presente → posso aggiungere SW (sarà ferie+SW, mezza+mezza)
-    html+=`<button class="popup-tipo-btn" onclick="popupAddSW('${iso}')">
-      <span class="popup-tipo-dot" style="background:var(--teal)"></span>Aggiungi smartworking <span style="font-size:10px;opacity:.7">(4h+4h)</span></button>`;
-  }
-  if(haPermesso && !haSW){
+  if(!haSW){
+    // Posso aggiungere SW se non c'è già
     const oreAttuali=permessiLocali[iso]?.ore||0;
-    if(oreAttuali<=4){
-      // Permesso ≤4h → posso aggiungere SW (bloccherà il permesso a 4h)
+    const swOk=!haFerie&&!haPermesso || (haFerie) || (haPermesso&&oreAttuali<=4);
+    if(swOk){
+      const label=(haFerie||haPermesso)?'Aggiungi smartworking <span style="font-size:10px;opacity:.7">(4h+4h)</span>':'Aggiungi smartworking';
       html+=`<button class="popup-tipo-btn" onclick="popupAddSW('${iso}')">
-        <span class="popup-tipo-dot" style="background:var(--teal)"></span>Aggiungi smartworking <span style="font-size:10px;opacity:.7">(4h+4h)</span></button>`;
+        <span class="popup-tipo-dot" style="background:var(--teal)"></span>${label}</button>`;
     }
-  }
-  if(!haFerie && !haPermesso && !haSW){
-    html+=`<button class="popup-tipo-btn" onclick="popupAddSW('${iso}')">
-      <span class="popup-tipo-dot" style="background:var(--teal)"></span>Aggiungi smartworking</button>`;
   }
 
   // INFO 4+4
@@ -1862,12 +1989,12 @@ function popupAddFerie(iso){
   if(swLocali.has(iso)&&permessiLocali[iso]){
     permessiLocali[iso]={...permessiLocali[iso],ore:4};
   }
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 function popupRimuoviFerie(iso){
   chiudiPopupTipo();
   ferieLocali.delete(iso);
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 // forzato4=true quando c'è già SW → ore bloccate a 4
 function popupAddPermesso(iso, forzato4){
@@ -1890,7 +2017,7 @@ function popupAddPermesso(iso, forzato4){
 function popupRimuoviPermesso(iso){
   chiudiPopupTipo();
   delete permessiLocali[iso];
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 function popupAddSW(iso){
   chiudiPopupTipo();
@@ -1912,7 +2039,7 @@ function popupAddSW(iso){
 function popupRimuoviSW(iso){
   chiudiPopupTipo();
   swLocali.delete(iso);
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 
 
@@ -1965,13 +2092,13 @@ function confermaPeriodo(){
   for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){
     const s=isoDate(d);if(d.getDay()!==0&&d.getDay()!==6&&!fx[s])ferieLocali.add(s);
   }
-  chiudiModal('overlayPeriodo');disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  chiudiModal('overlayPeriodo');disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 function rimuoviFerie(){
   const anno=String(document.getElementById('annoInput').value);
   if(!confirm(`Rimuovere tutte le ferie del ${anno}?`))return;
   for(const g of[...ferieLocali])if(g.startsWith(anno))ferieLocali.delete(g);
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2177,32 +2304,34 @@ async function stampaPDF(){
   // Tabella riepilogo mensile con festività per nome
   html+=`<h2>Riepilogo mensile</h2>
   <table class="riepilogo">
-    <tr><th>Mese</th><th>Giorni ferie</th><th>Ore permessi</th><th>Festività</th><th>Weekend</th><th>Giorni ferie (dettaglio)</th></tr>`;
+    <tr><th>Mese</th><th>Giorni ferie</th><th>Ore permessi</th><th>Smartworking</th><th>Festività</th><th>Weekend</th></tr>`;
   for(let m=0;m<12;m++){
-    const pm=perMese[m]||{lav:0,fest:0,wkd:0,nomiFest:[]};
+    const pm=perMese[m]||{lav:0,fest:0,wkd:0,ferie:[]};
     const nomiFestMese=[];
     const totalGiorni=new Date(anno,m+1,0).getDate();
     let orePermMese=0;
+    let swMese=0;
     for(let g=1;g<=totalGiorni;g++){
       const iso=isoDate(new Date(anno,m,g));
       if(fx[iso])nomiFestMese.push(`${g} ${fx[iso]}`);
       if(permessiLocali[iso])orePermMese+=permessiLocali[iso].ore||0;
+      if(swLocali.has(iso))swMese++;
     }
-    const dettaglioFerie=(pm.ferie||[]).map(g=>{
-      const d=isoToDate(g);
-      return d.getDate()+' '+['Lu','Ma','Me','Gi','Ve'][d.getDay()-1];
-    }).join(', ');
     const festCell=nomiFestMese.length
       ?`<span style="color:#EF4444">${nomiFestMese.join(', ')}</span>`
       :`<span style="color:#94A3B8">—</span>`;
     const oreCell=orePermMese>0
       ?`<span style="color:#0891B2;font-weight:700">${orePermMese}h</span>`
       :`<span style="color:#94A3B8">—</span>`;
-    html+=`<tr><td><b>${MESI[m]}</b></td><td style="text-align:center">${pm.lav||0}</td>
+    const swCell=swMese>0
+      ?`<span style="color:#0D9488;font-weight:700">${swMese}gg</span>`
+      :`<span style="color:#94A3B8">—</span>`;
+    html+=`<tr><td><b>${MESI[m]}</b></td>
+      <td style="text-align:center">${pm.lav||0}</td>
       <td style="text-align:center">${oreCell}</td>
+      <td style="text-align:center">${swCell}</td>
       <td>${festCell}</td>
-      <td style="text-align:center">${pm.wkd||0}</td>
-      <td style="color:#64748B">${dettaglioFerie||'—'}</td></tr>`;
+      <td style="text-align:center">${pm.wkd||0}</td></tr>`;
   }
   html+='</table>';
 
@@ -2364,7 +2493,7 @@ async function confermaRichiesta(){
       Approvatore:'',DataRisposta:'',MotivazioneRifiuto:'',Letta:false});
     await ghSaveFile(PATH_RICHIESTE,filtered,`Richiesta ${utenteCorrente.Title} ${anno}`);
     chiudiModal('overlayRichiesta');toast('Richiesta inviata!','verde');
-    disegnaCal();aggiornaStatobar();await caricaStatiRichieste(anno);
+    await disegnaCal();aggiornaStatobar();aggiornaSidebar();
   }catch(e){msg.textContent='Errore: '+e.message;}
 }
 /* ═══════════════════════════════════════════════════════════════════
@@ -3407,7 +3536,7 @@ async function eseguiRimozione(){
   else if(tipo==='permessi') giorniSel.forEach(g=>delete permessiLocali[g]);
   else giorniSel.forEach(g=>swLocali.delete(g));
   chiudiModal('overlayRimuovi');
-  disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  disegnaCal().then(()=>{aggiornaStatobar();aggiornaSidebar();});
   toast(`${giorniSel.length} giorn${giorniSel.length===1?'o':'i'} rimoss${tipo==='ferie'?'i':'i'} localmente`,'rosso');
 }
 function toggleChipFiltro(title, event){
