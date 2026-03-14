@@ -501,7 +501,7 @@
     <div class="modal-hdr"><h2>⊞ Aggiungi periodo ferie</h2><p>Seleziona l'intervallo di date — weekend e festività vengono esclusi automaticamente</p></div>
     <div class="modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="field"><label>Data inizio</label><input type="date" id="periodoIni" onchange="anteprima()"/></div>
+        <div class="field"><label>Data inizio</label><input type="date" id="periodoIni" onchange="sincronizzaFine();anteprima()"/></div>
         <div class="field"><label>Data fine</label><input type="date" id="periodoFin" onchange="anteprima()"/></div>
       </div>
       <div id="periodoAnteprima" style="display:none;background:var(--blu-light);border:1px solid var(--blu);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:4px"></div>
@@ -2399,11 +2399,26 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&rangeMode)attivaRan
 function apriPeriodo(){
   const anno=document.getElementById('annoInput').value;
   const oggi=isoDate(new Date());
-  document.getElementById('periodoIni').value=oggi>anno+'-01-01'?oggi:anno+'-01-01';
-  document.getElementById('periodoFin').value='';
+  const dataInizio=oggi>anno+'-01-01'?oggi:anno+'-01-01';
+  document.getElementById('periodoIni').value=dataInizio;
+  document.getElementById('periodoFin').value=dataInizio; // stesso mese dell'inizio
+  document.getElementById('periodoFin').min=dataInizio;
   document.getElementById('periodoMsg').textContent='';
   document.getElementById('periodoAnteprima').style.display='none';
   apriModal('overlayPeriodo');
+}
+function sincronizzaFine(){
+  const ini=document.getElementById('periodoIni').value;
+  const fin=document.getElementById('periodoFin');
+  if(!ini)return;
+  // Se il campo fine è vuoto o è precedente all'inizio, impostalo uguale all'inizio
+  // così il browser aprirà il picker già sul mese corretto
+  if(!fin.value||fin.value<ini){
+    fin.value=ini;
+    fin.min=ini; // impedisce di selezionare date precedenti all'inizio
+  } else {
+    fin.min=ini;
+  }
 }
 function anteprima(){
   const ini=document.getElementById('periodoIni').value,fin=document.getElementById('periodoFin').value;
