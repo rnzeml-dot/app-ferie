@@ -164,10 +164,11 @@
   .giorno.sw-deroga { background:#FFEDD5; color:#7C2D12; font-weight:700; border:2px dashed var(--teal); }
   .giorno.sw-rif    { background:#FFEDD5; color:#7C2D12; text-decoration:line-through; }
   .giorno.sw label  { font-size:7px; position:absolute; bottom:1px; left:0; right:0; text-align:center; color:rgba(255,255,255,.85); font-weight:700; line-height:1; }
-  .sw-label { position:absolute; bottom:1px; left:0; right:0; text-align:center; font-size:7px; font-weight:700; line-height:1; color:rgba(255,255,255,.85); }
-  /* etichetta ore nel giorno */
-  .ore-label { position:absolute; bottom:1px; left:0; right:0; text-align:center;
-    font-size:7px; font-weight:700; line-height:1; color:rgba(255,255,255,.9); }
+  /* Etichette inline accanto al numero del giorno */
+  .giorno { display:flex; align-items:center; justify-content:center; gap:1px; }
+  .sw-label  { font-size:7px; font-weight:700; color:rgba(255,255,255,.9); line-height:1; flex-shrink:0; }
+  .ore-label { font-size:7px; font-weight:700; color:rgba(255,255,255,.95); line-height:1; flex-shrink:0; }
+  .f-label   { font-size:7px; font-weight:700; color:rgba(255,255,255,.9); line-height:1; flex-shrink:0; }
   .nw-cell { text-align:center; font-size:9px; color:var(--debole); padding:3px 0; }
 
   /* Overlay / Modal */
@@ -2130,10 +2131,14 @@ async function disegnaCal(){
       if(effSW||attesaSW||s.sw==='rifiutata') el.style.position='relative';
       el.className=cls;el.dataset.iso=iso;
       if(fx[iso])el.title=fx[iso];
+      // Etichette inline accanto al numero
       if((effP||attesaP)&&permessiLocali[iso]){
         const lbl=document.createElement('span');lbl.className='ore-label';
         lbl.textContent=permessiLocali[iso].ore+'h';el.appendChild(lbl);
         el.title=(permessiLocali[iso].note||'')+` (${permessiLocali[iso].ore}h)`;
+      } else if(effF||attesaF||rifF){
+        const lbl=document.createElement('span');lbl.className='f-label';
+        lbl.textContent='f';el.appendChild(lbl);
       }
       if(effSW||attesaSW||s.sw==='rifiutata'){
         const lbl=document.createElement('span');lbl.className='sw-label';
@@ -2456,8 +2461,10 @@ async function stampaPDF(){
     .gd.fest      {background:#FEF2F2!important;color:#EF4444!important;font-weight:700}
     .gd.wkd       {background:#F0F9FF!important;color:#64748B!important}
     .gd.oggi      {outline:2px solid #D97706;outline-offset:-2px;font-weight:700}
-    .gd .ore-lbl  {display:block;font-size:5.5px;line-height:1;margin-top:1px;opacity:.9}
-    .gd .sw-lbl   {display:block;font-size:5px;line-height:1;margin-top:1px;opacity:.9}
+    .gd           {display:flex;align-items:center;justify-content:center;gap:1px}
+    .gd .ore-lbl  {font-size:5px;font-weight:700;opacity:.9;line-height:1}
+    .gd .sw-lbl   {font-size:5px;font-weight:700;opacity:.9;line-height:1}
+    .gd .f-lbl    {font-size:5px;font-weight:700;opacity:.9;line-height:1}
     .nw{text-align:center;font-size:7px;color:#94A3B8}
     .riepilogo{border-collapse:collapse;width:100%;margin-top:6px}
     .riepilogo th{background:#2563EB!important;color:#fff!important;padding:4px 8px;text-align:left;font-size:9px}
@@ -2538,8 +2545,9 @@ async function stampaPDF(){
       if(iso===oggiIso) cls+=' oggi';
       let inner=String(g);
       if(permessiLocali[iso]&&!swLocali.has(iso)) inner+=`<span class="ore-lbl">${permessiLocali[iso].ore}h</span>`;
-      else if(permessiLocali[iso]&&swLocali.has(iso)) inner+=`<span class="ore-lbl">${permessiLocali[iso].ore}h·SW</span>`;
+      else if(permessiLocali[iso]&&swLocali.has(iso)) inner+=`<span class="ore-lbl">${permessiLocali[iso].ore}h</span><span class="sw-lbl">SW</span>`;
       else if(swLocali.has(iso)||req?.tipo==='sw') inner+=`<span class="sw-lbl">${req?.deroga&&req?.stato==='in_attesa'?'SW*':'SW'}</span>`;
+      else if(ferieLocali.has(iso)) inner+=`<span class="f-lbl">f</span>`;
       riga.giorni.push(`<div class="${cls}">${inner}</div>`);
     }
     righe.push(riga);
@@ -2572,7 +2580,10 @@ async function stampaPDF(){
         <td style="text-align:center;font-weight:700;color:#15803D">${gg}</td>
       </tr>`;
     });
-    html+='</table>';
+    html+=`<tr style="background:#F0FDF4">
+      <td colspan="4" style="font-weight:700">Totale giorni ferie</td>
+      <td style="text-align:center;font-weight:700;color:#15803D">${totFerie} gg = ${totFerie*8}h</td>
+    </tr></table>`;
   }
 
   // Dettaglio permessi per esteso — una riga per giorno
@@ -2614,7 +2625,7 @@ async function stampaPDF(){
     });
     html+=`<tr style="background:#FFF7ED">
       <td style="font-weight:700">Totale</td>
-      <td style="font-weight:700;color:#EA580C">${giorniSWanno.length} giorni</td>
+      <td style="font-weight:700;color:#EA580C">${giorniSWanno.length} gg = ${giorniSWanno.length*8}h</td>
     </tr></table>`;
   }
 
@@ -2721,14 +2732,17 @@ function ricalcolaClasseGiorno(iso, statoFerie, statoPermesso, statoSW, derogaSW
 
   if(haS||effSW){el.style.position='relative';}
 
-  // Riaggiungi etichette SW se mancano
-  if(!el.querySelector('.sw-label')&&(haS||statoSW==='in_attesa'||statoSW==='rifiutata')){
+  // Riaggiungi etichette inline (rimuovi prima quelle vecchie per evitare duplicati)
+  el.querySelectorAll('.sw-label,.ore-label,.f-label').forEach(l=>l.remove());
+  if(haS||statoSW==='in_attesa'||statoSW==='rifiutata'){
     const lbl=document.createElement('span');lbl.className='sw-label';
     lbl.textContent=(derogaSW&&statoSW==='in_attesa')?'SW*':'SW';el.appendChild(lbl);
-  }
-  if(!el.querySelector('.ore-label')&&(haPermesso||effPerm)&&permessiLocali[iso]){
+  } else if((haPermesso||effPerm)&&permessiLocali[iso]){
     const lbl=document.createElement('span');lbl.className='ore-label';
     lbl.textContent=permessiLocali[iso].ore+'h';el.appendChild(lbl);
+  } else if(effF||statoFerie==='in_attesa'||statoFerie==='rifiutata'){
+    const lbl=document.createElement('span');lbl.className='f-label';
+    lbl.textContent='f';el.appendChild(lbl);
   }
 }
 
@@ -3755,17 +3769,18 @@ function vrDisegnaCal(nome,anno,ferie,permessi,sw,fx,oggi){
       if(ferie.has(iso)&&permessi[iso])cls='giorno ferie permesso';
       if(sw.has(iso)){cls+=' sw';el.style.position='relative';}
       el.className=cls;
-      // Etichette
+      // Etichette inline accanto al numero
       if(permessi[iso]){
         const lbl=document.createElement('span');lbl.className='ore-label';
         lbl.textContent=permessi[iso].ore+'h';el.appendChild(lbl);
         el.title=`${nome} — Permesso ${permessi[iso].ore}h${permessi[iso].note?' ('+permessi[iso].note+')':''}`;
-      }
-      if(sw.has(iso)&&!permessi[iso]){
+      } else if(sw.has(iso)){
         const lbl=document.createElement('span');lbl.className='sw-label';lbl.textContent='SW';el.appendChild(lbl);
         el.title=`${nome} — Smartworking`;
+      } else if(ferie.has(iso)){
+        const lbl=document.createElement('span');lbl.className='f-label';lbl.textContent='f';el.appendChild(lbl);
+        el.title=`${nome} — Ferie`;
       }
-      if(ferie.has(iso))el.title=`${nome} — Ferie`;
       riga.giorni.push(el);
     }
     righe.push(riga);
@@ -3829,7 +3844,8 @@ function stampaPDFRisorsa(){
     .gd.fest     {background:#FEF2F2!important;color:#EF4444!important;font-weight:700}
     .gd.wkd      {background:#F0F9FF!important;color:#64748B!important}
     .gd.oggi     {outline:2px solid #7C3AED;outline-offset:-2px;font-weight:700}
-    .gd .lbl     {display:block;font-size:5px;line-height:1;margin-top:1px;opacity:.9}
+    .gd .lbl     {font-size:5px;font-weight:700;line-height:1;opacity:.9}
+    .gd          {display:flex;align-items:center;justify-content:center;gap:1px}
     .nw          {text-align:center;font-size:6.5px;color:#94A3B8}
     /* Tabelle dettaglio */
     .tab{border-collapse:collapse;width:100%;margin-top:6px;font-size:9px}
@@ -3881,8 +3897,10 @@ function stampaPDFRisorsa(){
       if(iso===oggi)           cls+=' oggi';
 
       let inner=String(g);
-      if(haP) inner+=`<span class="lbl">${permessi[iso].ore}h${haS?'+SW':''}</span>`;
+      if(haP&&haS) inner+=`<span class="lbl">${permessi[iso].ore}h</span><span class="lbl">SW</span>`;
+      else if(haP) inner+=`<span class="lbl">${permessi[iso].ore}h</span>`;
       else if(haS) inner+=`<span class="lbl">SW</span>`;
+      else if(haF) inner+=`<span class="lbl">f</span>`;
 
       riga.celle.push(`<div class="${cls}">${inner}</div>`);
     }
@@ -3913,7 +3931,7 @@ function stampaPDFRisorsa(){
       </tr>`;
     });
     html+=`<tr style="background:#F0FDF4!important"><td colspan="3"><b>Totale giorni ferie</b></td>
-      <td style="text-align:center;font-weight:700;color:#15803D">${totFerie}</td></tr></table>`;
+      <td style="text-align:center;font-weight:700;color:#15803D">${totFerie} gg = ${totFerie*8}h</td></tr></table>`;
   }
 
   // Dettaglio permessi — UN GIORNO PER RIGA con data + ore
@@ -3945,7 +3963,7 @@ function stampaPDFRisorsa(){
       </tr>`;
     });
     html+=`<tr style="background:#FFF7ED!important"><td><b>Totale</b></td>
-      <td style="font-weight:700;color:#EA580C">${totSW} giorni</td></tr></table>`;
+      <td style="font-weight:700;color:#EA580C">${totSW} gg = ${totSW*8}h</td></tr></table>`;
   }
 
   // Riepilogo mensile
