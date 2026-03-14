@@ -20,5 +20,27 @@
     "DataRisposta": "2026-03-14T22:06:02.645Z",
     "MotivazioneRifiuto": "",
     "Letta": false
+  },
+  {
+    "id": 1773526001269,
+    "Tipo": "permesso",
+    "Dipendente": "LORENZO BRIGADINI",
+    "Responsabile": "EMILIANO RONZAT",
+    "Anno": 2026,
+    "Giorni": [
+      "2026-03-23"
+    ],
+    "OrePerGiorno": {
+      "2026-03-23": {
+        "ore": 1,
+        "note": ""
+      }
+    },
+    "Stato": "in_attesa",
+    "DataInvio": "2026-03-14T22:06:41.269Z",
+    "Approvatore": "",
+    "DataRisposta": "",
+    "MotivazioneRifiuto": "",
+    "Letta": false
   }
 ]
