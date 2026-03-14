@@ -23,7 +23,7 @@
   .app-header { background:var(--blu); padding:0 24px; display:flex; align-items:center;
     justify-content:space-between; height:56px; position:sticky; top:0; z-index:100;
     border-bottom:3px solid var(--blu2); }
-  .app-header .logo { color:#fff; font-size:20px; font-weight:700; letter-spacing:2px; }
+  .app-header .logo { color:#fff; font-size:16px; font-weight:700; letter-spacing:.5px; }
   .app-header .logo span { color:var(--blu2); }
   .user-info { display:flex; align-items:center; gap:10px; }
   .user-name { color:#fff; font-size:14px; font-weight:600; }
@@ -306,7 +306,7 @@
 <div class="overlay" id="loginOverlay" style="background:#1E293B">
   <div class="modal" style="min-width:320px;max-width:380px">
     <div class="modal-hdr" style="text-align:center;padding:28px 20px 20px">
-      <div style="font-size:28px;font-weight:900;letter-spacing:3px;color:var(--blu2)">FERIE</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:1px;color:var(--blu2)">Pianificazione Team FSE</div>
       <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px">Sistema di Pianificazione</div>
     </div>
     <div class="modal-body">
@@ -329,7 +329,7 @@
 <!-- APP -->
 <div id="app" class="hidden">
   <header class="app-header">
-    <div class="logo">FE<span>R</span>IE</div>
+    <div class="logo">Pianificazione Team <span>FSE</span></div>
     <div class="user-info">
       <div class="user-menu-wrap">
         <button class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu(event)">
