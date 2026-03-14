@@ -14,10 +14,10 @@
         "note": ""
       }
     },
-    "Stato": "in_attesa",
+    "Stato": "approvata",
     "DataInvio": "2026-03-14T22:05:39.635Z",
-    "Approvatore": "",
-    "DataRisposta": "",
+    "Approvatore": "EMILIANO RONZAT",
+    "DataRisposta": "2026-03-14T22:06:02.645Z",
     "MotivazioneRifiuto": "",
     "Letta": false
   }
