@@ -9,12 +9,12 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --blu:#2563EB; --blu2:#3B82F6; --blu-light:#EFF6FF;
-    --verde:#16A34A; --ambra:#F59E0B; --rosso:#EF4444; --viola:#7C3AED;
-    --azzurro:#0891B2; --azzurro-light:#ECFEFF;
-    --teal:#0D9488; --teal-light:#F0FDFA;
+    --verde:#15803D; --ambra:#D97706; --rosso:#EF4444; --viola:#7C3AED;
+    --azzurro:#1D4ED8; --azzurro-light:#EFF6FF;
+    --teal:#EA580C; --teal-light:#FFF7ED;
     --grigio:#F1F5F9; --bordo:#CBD5E1; --testo:#1E293B; --debole:#94A3B8;
-    --card:#FFFFFF; --ferie-bg:#16A34A; --attesa-bg:#F59E0B;
-    --rif-bg:#EF4444; --oggi-bg:#F59E0B;
+    --card:#FFFFFF; --ferie-bg:#15803D; --attesa-bg:#D97706;
+    --rif-bg:#EF4444; --oggi-bg:#7C3AED;
     --font:'Aptos','Calibri','Segoe UI',sans-serif;
   }
   body { font-family:var(--font); background:var(--grigio); color:var(--testo); min-height:100vh; }
@@ -152,17 +152,17 @@
   .giorno.rifiutata { background:var(--rif-bg); color:#fff; font-weight:700; }
   .giorno.range-start { background:#F97316 !important; color:#fff !important; }
   .giorno.permesso  { background:var(--azzurro); color:#fff; font-weight:700; }
-  .giorno.permesso-attesa { background:#67E8F9; color:#164E63; font-weight:700; }
-  .giorno.permesso-rif    { background:#A5F3FC; color:#164E63; font-weight:700; text-decoration:line-through; }
+  .giorno.permesso-attesa { background:#BFDBFE; color:#1E3A5F; font-weight:700; }
+  .giorno.permesso-rif    { background:#DBEAFE; color:#1E3A5F; font-weight:700; text-decoration:line-through; }
   .giorno.ferie.permesso  { background:linear-gradient(135deg,var(--ferie-bg) 50%,var(--azzurro) 50%); }
   .giorno.sw        { background:var(--teal); color:#fff; font-weight:700; }
   /* Combinazioni con SW — gradiente diagonale per distinguere visivamente */
   .giorno.ferie-sw  { background:linear-gradient(135deg,var(--ferie-bg) 50%,var(--teal) 50%); color:#fff; font-weight:700; }
   .giorno.permesso-sw { background:linear-gradient(135deg,var(--azzurro) 50%,var(--teal) 50%); color:#fff; font-weight:700; }
   .giorno.ferie-perm-sw { background:linear-gradient(135deg,var(--ferie-bg) 33%,var(--azzurro) 66%,var(--teal) 100%); color:#fff; font-weight:700; }
-  .giorno.sw-attesa { background:#99F6E4; color:#134E4A; font-weight:700; }
-  .giorno.sw-deroga { background:#CCFBF1; color:#134E4A; font-weight:700; border:2px dashed var(--teal); }
-  .giorno.sw-rif    { background:#CCFBF1; color:#134E4A; text-decoration:line-through; }
+  .giorno.sw-attesa { background:#FED7AA; color:#7C2D12; font-weight:700; }
+  .giorno.sw-deroga { background:#FFEDD5; color:#7C2D12; font-weight:700; border:2px dashed var(--teal); }
+  .giorno.sw-rif    { background:#FFEDD5; color:#7C2D12; text-decoration:line-through; }
   .giorno.sw label  { font-size:7px; position:absolute; bottom:1px; left:0; right:0; text-align:center; color:rgba(255,255,255,.85); font-weight:700; line-height:1; }
   .sw-label { position:absolute; bottom:1px; left:0; right:0; text-align:center; font-size:7px; font-weight:700; line-height:1; color:rgba(255,255,255,.85); }
   /* etichetta ore nel giorno */
@@ -249,7 +249,7 @@
   .sw-cal-day.dis  { color:var(--bordo);cursor:default;background:#FAFAFA; }
   .sw-cal-day.warn { border-color:var(--ambra)!important;background:#FFFBEB!important; }
   .sw-cal-day.over { border-color:var(--rosso)!important;background:#FEF2F2!important;color:var(--rosso)!important; }
-  .sw-chip { display:flex;align-items:center;gap:4px;background:var(--teal-light);border:1px solid #99F6E4;
+  .sw-chip { display:flex;align-items:center;gap:4px;background:var(--teal-light);border:1px solid #FED7AA;
     border-radius:20px;padding:2px 8px 2px 6px;font-size:11px;color:var(--teal); }
   .sw-chip button { border:none;background:none;color:var(--teal);cursor:pointer;font-size:13px;line-height:1;padding:0; }
 
@@ -912,6 +912,19 @@ const MESI   = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
 const GIORNI = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
 const PALETTE= ['#4CAF50','#2196F3','#FF9800','#9C27B0','#F44336',
                 '#00BCD4','#795548','#607D8B','#E91E63','#FF5722'];
+
+// Helper: da "NOME COGNOME [COGNOME2]" → "Cognome N." (ultimo token = cognome, primo = nome)
+function cognomeNome(title){
+  if(!title)return '';
+  const p=title.trim().split(/\s+/);
+  if(p.length===1)return cap(p[0]);
+  const cognome=cap(p[p.length-1]);
+  const inizNome=cap(p[0]).charAt(0)+'.';
+  return `${cognome} ${inizNome}`;
+}
+// Capitalizza prima lettera, resto minuscolo
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():'';}
+
 const PATH_CONFIG    = 'data/config.json';
 const PATH_FERIE     = 'data/ferie.json';
 const PATH_RICHIESTE = 'data/richieste.json';
@@ -1794,7 +1807,7 @@ function apriVistaMese(mese, anno, contesto, datiExtra){
       return ft&&ft.ferie.has(iso);
     }).map(m=>{
       const ft=ferieTeam[m.Title];
-      const nome=m.Title.split(' ')[0];
+      const nome=cognomeNome(m.Title);
       return `<div style="font-size:9px;background:${ft.colore}22;color:${ft.colore};border:1px solid ${ft.colore};border-radius:3px;padding:0 3px;margin:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${nome}</div>`;
     }).join('');
     return `<div style="background:var(--card);border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;border:${bordo};min-height:52px;display:flex;flex-direction:column;align-items:center">
@@ -1965,7 +1978,7 @@ async function disegnaCal(){
       let cls='giorno';
       if(fx[iso])cls+=' festivo-nat';
       else if(d.getDay()===0||d.getDay()===6)cls+=' weekend';
-      else el.onclick=()=>apriPopupTipo(iso);
+      else el.onclick=e=>{e.stopPropagation();apriPopupTipo(iso);};
       if(iso===oggi)cls+=' oggi';
 
       // Stato da richieste (ha priorità sul dato locale)
@@ -2310,22 +2323,22 @@ async function stampaPDF(){
     .gh.wk{color:#EF4444}.gh.nw{color:#94A3B8;font-size:7px}
     .gd{text-align:center;font-size:8px;padding:2px 1px;border-radius:3px;position:relative;line-height:1.2;min-height:16px}
     /* Colori identici all'app */
-    .gd.ferie     {background:#16A34A!important;color:#fff!important;font-weight:700}
-    .gd.permesso  {background:#0891B2!important;color:#fff!important;font-weight:700}
-    .gd.sw        {background:#0D9488!important;color:#fff!important;font-weight:700}
-    .gd.ferie-perm{background:linear-gradient(135deg,#16A34A 50%,#0891B2 50%)!important;color:#fff!important;font-weight:700}
-    .gd.ferie-sw  {background:linear-gradient(135deg,#16A34A 50%,#0D9488 50%)!important;color:#fff!important;font-weight:700}
-    .gd.permesso-sw{background:linear-gradient(135deg,#0891B2 50%,#0D9488 50%)!important;color:#fff!important;font-weight:700}
-    .gd.attesa    {background:#F59E0B!important;color:#fff!important;font-weight:700}
+    .gd.ferie     {background:#15803D!important;color:#fff!important;font-weight:700}
+    .gd.permesso  {background:#1D4ED8!important;color:#fff!important;font-weight:700}
+    .gd.sw        {background:#EA580C!important;color:#fff!important;font-weight:700}
+    .gd.ferie-perm{background:linear-gradient(135deg,#15803D 50%,#1D4ED8 50%)!important;color:#fff!important;font-weight:700}
+    .gd.ferie-sw  {background:linear-gradient(135deg,#15803D 50%,#EA580C 50%)!important;color:#fff!important;font-weight:700}
+    .gd.permesso-sw{background:linear-gradient(135deg,#1D4ED8 50%,#EA580C 50%)!important;color:#fff!important;font-weight:700}
+    .gd.attesa    {background:#D97706!important;color:#fff!important;font-weight:700}
     .gd.rifiutata {background:#EF4444!important;color:#fff!important;text-decoration:line-through}
-    .gd.perm-att  {background:#67E8F9!important;color:#164E63!important;font-weight:700}
-    .gd.perm-rif  {background:#A5F3FC!important;color:#164E63!important;text-decoration:line-through}
-    .gd.sw-att    {background:#99F6E4!important;color:#134E4A!important;font-weight:700}
-    .gd.sw-der    {background:#CCFBF1!important;color:#134E4A!important;font-weight:700;outline:2px dashed #0D9488}
-    .gd.sw-rif    {background:#CCFBF1!important;color:#134E4A!important;text-decoration:line-through}
+    .gd.perm-att  {background:#BFDBFE!important;color:#1E3A5F!important;font-weight:700}
+    .gd.perm-rif  {background:#DBEAFE!important;color:#1E3A5F!important;text-decoration:line-through}
+    .gd.sw-att    {background:#FED7AA!important;color:#7C2D12!important;font-weight:700}
+    .gd.sw-der    {background:#FFEDD5!important;color:#7C2D12!important;font-weight:700;outline:2px dashed #EA580C}
+    .gd.sw-rif    {background:#FFEDD5!important;color:#7C2D12!important;text-decoration:line-through}
     .gd.fest      {background:#FEF2F2!important;color:#EF4444!important;font-weight:700}
     .gd.wkd       {background:#F0F9FF!important;color:#64748B!important}
-    .gd.oggi      {outline:2px solid #F59E0B;outline-offset:-2px;font-weight:700}
+    .gd.oggi      {outline:2px solid #D97706;outline-offset:-2px;font-weight:700}
     .gd .ore-lbl  {display:block;font-size:5.5px;line-height:1;margin-top:1px;opacity:.9}
     .gd .sw-lbl   {display:block;font-size:5px;line-height:1;margin-top:1px;opacity:.9}
     .nw{text-align:center;font-size:7px;color:#94A3B8}
@@ -2343,9 +2356,9 @@ async function stampaPDF(){
   <h1>📅 Calendario Ferie ${anno}</h1>
   <p style="color:#64748B;font-size:11px;margin-bottom:10px">${nome} — Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
   <div style="margin-bottom:12px">
-    <div class="stat-box"><div class="n" style="color:#16A34A">${totFerie}</div><div class="l">Giorni ferie</div></div>
-    <div class="stat-box"><div class="n" style="color:#0891B2">${Object.values(permessiLocali).reduce((t,v)=>t+(v?.ore||0),0)}h</div><div class="l">Ore permessi</div></div>
-    <div class="stat-box"><div class="n" style="color:#0D9488">${[...swLocali].filter(g=>g.startsWith(anno)).length}</div><div class="l">Giorni SW</div></div>
+    <div class="stat-box"><div class="n" style="color:#15803D">${totFerie}</div><div class="l">Giorni ferie</div></div>
+    <div class="stat-box"><div class="n" style="color:#1D4ED8">${Object.values(permessiLocali).reduce((t,v)=>t+(v?.ore||0),0)}h</div><div class="l">Ore permessi</div></div>
+    <div class="stat-box"><div class="n" style="color:#EA580C">${[...swLocali].filter(g=>g.startsWith(anno)).length}</div><div class="l">Giorni SW</div></div>
     <div class="stat-box"><div class="n">${periodi.length}</div><div class="l">Periodi ferie</div></div>
     <div class="stat-box"><div class="n">${totFestivita}</div><div class="l">Festività</div></div>
   </div>
@@ -2439,70 +2452,52 @@ async function stampaPDF(){
         <td><b>${meseDa}${meseA}</b></td>
         <td>${da.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
         <td>${a.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
-        <td style="text-align:center;font-weight:700;color:#16A34A">${gg}</td>
+        <td style="text-align:center;font-weight:700;color:#15803D">${gg}</td>
       </tr>`;
     });
     html+='</table>';
   }
 
-  // Dettaglio permessi per esteso
+  // Dettaglio permessi per esteso — una riga per giorno
   const giorniPermessi=Object.keys(permessiLocali).filter(g=>g.startsWith(anno)).sort();
   if(giorniPermessi.length){
     const totOreAnno=giorniPermessi.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0);
     html+=`<h2>Dettaglio permessi — ${nome}</h2>
     <table class="riepilogo">
-      <tr><th>#</th><th>Mese</th><th>Data</th><th>Ore</th><th>Note</th></tr>`;
+      <tr><th>#</th><th>Giorno</th><th>Ore</th><th>Note</th></tr>`;
     giorniPermessi.forEach((iso,i)=>{
       const d=isoToDate(iso);
       const p=permessiLocali[iso];
       html+=`<tr>
-        <td style="text-align:center;font-weight:700;color:#0891B2">${i+1}</td>
-        <td><b>${MESI[d.getMonth()]}</b></td>
-        <td>${d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
-        <td style="text-align:center;font-weight:700;color:#0891B2">${p?.ore||0}h</td>
+        <td style="text-align:center;font-weight:700;color:#1D4ED8">${i+1}</td>
+        <td>${d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</td>
+        <td style="text-align:center;font-weight:700;color:#1D4ED8">${p?.ore||0}h</td>
         <td style="color:#64748B;font-style:italic">${p?.note||'—'}</td>
       </tr>`;
     });
     html+=`<tr style="background:#EFF6FF">
-      <td colspan="3"><b>Totale ore permessi</b></td>
-      <td style="text-align:center;font-weight:700;color:#0891B2">${totOreAnno}h</td>
+      <td colspan="2" style="font-weight:700">Totale ore permessi</td>
+      <td style="text-align:center;font-weight:700;color:#1D4ED8">${totOreAnno}h</td>
       <td></td>
     </tr></table>`;
   }
 
-  // Dettaglio smartworking per esteso
+  // Dettaglio smartworking per esteso — una riga per giorno
   const giorniSWanno=[...swLocali].filter(g=>g.startsWith(anno)).sort();
   if(giorniSWanno.length){
-    // Raggruppa in periodi contigui
-    const periodiSW=[];let currSW=null;
-    for(const g of giorniSWanno){
-      if(!currSW){currSW={da:g,a:g,lista:[g]};}
-      else{
-        const diff=(isoToDate(g)-isoToDate(currSW.a))/(1000*60*60*24);
-        if(diff<=3){currSW.a=g;currSW.lista.push(g);}
-        else{periodiSW.push(currSW);currSW={da:g,a:g,lista:[g]};}
-      }
-    }
-    if(currSW)periodiSW.push(currSW);
-
     html+=`<h2>Dettaglio smartworking — ${nome}</h2>
     <table class="riepilogo">
-      <tr><th>#</th><th>Mese</th><th>Dal</th><th>Al</th><th>Giorni</th></tr>`;
-    periodiSW.forEach((p,i)=>{
-      const da=isoToDate(p.da),a=isoToDate(p.a);
-      const meseDa=MESI[da.getMonth()];
-      const meseA=da.getMonth()===a.getMonth()?'':`/ ${MESI[a.getMonth()]}`;
+      <tr><th>#</th><th>Giorno</th></tr>`;
+    giorniSWanno.forEach((iso,i)=>{
+      const d=isoToDate(iso);
       html+=`<tr>
-        <td style="text-align:center;font-weight:700;color:#0D9488">${i+1}</td>
-        <td><b>${meseDa}${meseA}</b></td>
-        <td>${da.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
-        <td>${a.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
-        <td style="text-align:center;font-weight:700;color:#0D9488">${p.lista.length}</td>
+        <td style="text-align:center;font-weight:700;color:#EA580C">${i+1}</td>
+        <td>${d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</td>
       </tr>`;
     });
-    html+=`<tr style="background:#F0FDFA">
-      <td colspan="4"><b>Totale giorni smartworking</b></td>
-      <td style="text-align:center;font-weight:700;color:#0D9488">${giorniSWanno.length}</td>
+    html+=`<tr style="background:#FFF7ED">
+      <td style="font-weight:700">Totale</td>
+      <td style="font-weight:700;color:#EA580C">${giorniSWanno.length} giorni</td>
     </tr></table>`;
   }
 
@@ -2526,10 +2521,10 @@ async function stampaPDF(){
       ?`<span style="color:#EF4444">${nomiFestMese.join(', ')}</span>`
       :`<span style="color:#94A3B8">—</span>`;
     const oreCell=orePermMese>0
-      ?`<span style="color:#0891B2;font-weight:700">${orePermMese}h</span>`
+      ?`<span style="color:#1D4ED8;font-weight:700">${orePermMese}h</span>`
       :`<span style="color:#94A3B8">—</span>`;
     const swCell=swMese>0
-      ?`<span style="color:#0D9488;font-weight:700">${swMese}gg</span>`
+      ?`<span style="color:#EA580C;font-weight:700">${swMese}gg</span>`
       :`<span style="color:#94A3B8">—</span>`;
     html+=`<tr><td><b>${MESI[m]}</b></td>
       <td style="text-align:center">${pm.lav||0}</td>
@@ -3196,9 +3191,9 @@ async function stampaDashboard(){
     <h1>📊 Dashboard Team — ${anno}</h1>
     <p style="color:#64748B;font-size:10px;margin-bottom:10px">Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
     <div style="margin-bottom:12px">
-      <span class="kpi"><span class="n" style="color:var(--verde,#16A34A)">${totFerie}</span><br><span class="l">Giorni ferie</span></span>
-      <span class="kpi"><span class="n" style="color:#0891B2">${totOre}h</span><br><span class="l">Ore permessi</span></span>
-      <span class="kpi"><span class="n" style="color:#0D9488">${totSW}</span><br><span class="l">Giorni SW</span></span>
+      <span class="kpi"><span class="n" style="color:var(--verde,#15803D)">${totFerie}</span><br><span class="l">Giorni ferie</span></span>
+      <span class="kpi"><span class="n" style="color:#1D4ED8">${totOre}h</span><br><span class="l">Ore permessi</span></span>
+      <span class="kpi"><span class="n" style="color:#EA580C">${totSW}</span><br><span class="l">Giorni SW</span></span>
     </div>
     <h2>Dettaglio risorse</h2>
     <table><tr><th>Risorsa</th><th>Ferie usate</th><th>Budget</th><th>Rimaste</th>
@@ -3206,13 +3201,13 @@ async function stampaDashboard(){
   righe.forEach(r=>{
     const budF=r.bud?.FerieDisponibili;const budP=r.bud?.OrePermessiDisponibili;
     html+=`<tr><td><b>${r.nome}</b></td>
-      <td style="text-align:center;color:#16A34A;font-weight:700">${r.nFerie}</td>
+      <td style="text-align:center;color:#15803D;font-weight:700">${r.nFerie}</td>
       <td style="text-align:center">${budF!=null?budF+'gg':'—'}</td>
       <td style="text-align:center;font-weight:700">${budF!=null?Math.max(0,budF-r.nFerie)+'gg':'—'}</td>
-      <td style="text-align:center;color:#0891B2;font-weight:700">${r.nOreP}h</td>
+      <td style="text-align:center;color:#1D4ED8;font-weight:700">${r.nOreP}h</td>
       <td style="text-align:center">${budP!=null?budP+'h':'—'}</td>
       <td style="text-align:center;font-weight:700">${budP!=null?Math.max(0,budP-r.nOreP)+'h':'—'}</td>
-      <td style="text-align:center;color:#0D9488;font-weight:700">${r.nSW}</td>
+      <td style="text-align:center;color:#EA580C;font-weight:700">${r.nSW}</td>
       <td style="text-align:center">${r.inAttesa||'—'}</td></tr>`;
   });
   html+='</table>';
@@ -3221,7 +3216,7 @@ async function stampaDashboard(){
     <table><tr><th>Risorsa</th>${MESI.map(m=>`<th>${m.substring(0,3)}</th>`).join('')}<th>Tot</th></tr>`;
   righe.forEach(r=>{
     html+=`<tr><td><b>${r.nome}</b></td>${r.perMese.map(m=>
-      `<td style="text-align:center${m.nF?';color:#16A34A;font-weight:700':''}">${m.nF||'—'}</td>`
+      `<td style="text-align:center${m.nF?';color:#15803D;font-weight:700':''}">${m.nF||'—'}</td>`
     ).join('')}<td style="text-align:center;font-weight:700">${r.nFerie}</td></tr>`;
   });
   html+='</table>';
@@ -3413,18 +3408,18 @@ function stampaPDFRisorsa(){
     h1{font-size:16pt;color:#2563EB;margin-bottom:4px}h2{font-size:12pt;color:#2563EB;margin:16px 0 6px;border-bottom:2px solid #EFF6FF;padding-bottom:4px}
     table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #CBD5E1;padding:5px 8px;font-size:9pt}
     th{background:#EFF6FF;font-weight:700;color:#2563EB}.mese-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-bottom:10px}
-    .g{text-align:center;padding:3px;border-radius:3px;font-size:8pt}.ferie-g{background:#16A34A;color:#fff;font-weight:700}
-    .perm-g{background:#0891B2;color:#fff;font-weight:700}.sw-g{background:#0D9488;color:#fff;font-weight:700}
+    .g{text-align:center;padding:3px;border-radius:3px;font-size:8pt}.ferie-g{background:#15803D;color:#fff;font-weight:700}
+    .perm-g{background:#1D4ED8;color:#fff;font-weight:700}.sw-g{background:#EA580C;color:#fff;font-weight:700}
     .fest-g{background:#FEF2F2;color:#EF4444;font-weight:700}.wkd-g{background:#F0F9FF;color:#64748B}
-    .today-g{background:#F59E0B;color:#fff;font-weight:700}.hdr-g{font-weight:700;color:#2563EB;font-size:7pt;text-align:center}
+    .today-g{background:#D97706;color:#fff;font-weight:700}.hdr-g{font-weight:700;color:#2563EB;font-size:7pt;text-align:center}
     .summary-box{display:inline-block;padding:8px 16px;border-radius:8px;margin-right:10px;margin-bottom:8px;font-size:10pt}
     @media print{@page{size:A4;margin:1.5cm}}</style>
     <h1>📅 ${nome}</h1>
     <div style="color:#64748B;margin-bottom:12px">Anno ${anno}${budget?` · Budget: ${budget.FerieDisponibili}gg ferie · ${budget.OrePermessiDisponibili}h permessi`:''}</div>
     <div style="margin-bottom:16px">
-      <span class="summary-box" style="background:#F0FDF4;border:1px solid #BBF7D0"><b style="color:#16A34A">${totFerie}</b> giorni ferie${budget?.FerieDisponibili?' / '+budget.FerieDisponibili+'gg':''}</span>
-      <span class="summary-box" style="background:#ECFEFF;border:1px solid #99F6E4"><b style="color:#0891B2">${totOreP}h</b> permessi${budget?.OrePermessiDisponibili?' / '+budget.OrePermessiDisponibili+'h':''}</span>
-      <span class="summary-box" style="background:#F0FDFA;border:1px solid #99F6E4"><b style="color:#0D9488">${totSW}</b> giorni smartworking</span>
+      <span class="summary-box" style="background:#F0FDF4;border:1px solid #BBF7D0"><b style="color:#15803D">${totFerie}</b> giorni ferie${budget?.FerieDisponibili?' / '+budget.FerieDisponibili+'gg':''}</span>
+      <span class="summary-box" style="background:#EFF6FF;border:1px solid #FED7AA"><b style="color:#1D4ED8">${totOreP}h</b> permessi${budget?.OrePermessiDisponibili?' / '+budget.OrePermessiDisponibili+'h':''}</span>
+      <span class="summary-box" style="background:#FFF7ED;border:1px solid #FED7AA"><b style="color:#EA580C">${totSW}</b> giorni smartworking</span>
     </div>`;
 
   // Calendario 12 mesi
@@ -3478,7 +3473,7 @@ function stampaPDFRisorsa(){
   if(giorniP.length){
     html+=`<h2>Permessi retribuiti — dettaglio</h2><table><tr><th>Data</th><th>Ore</th><th>Note</th></tr>`;
     giorniP.forEach(g=>{const p=permessi[g];html+=`<tr><td>${fmt(g)}</td><td style="text-align:center">${p.ore}h</td><td style="color:#64748B">${p.note||'—'}</td></tr>`;});
-    html+=`<tr style="background:#ECFEFF"><td colspan="2"><b>Totale ore permessi</b></td><td><b>${totOreP}h</b></td></tr></table>`;
+    html+=`<tr style="background:#EFF6FF"><td colspan="2"><b>Totale ore permessi</b></td><td><b>${totOreP}h</b></td></tr></table>`;
   }
 
   // Tabella SW
@@ -3541,7 +3536,7 @@ async function apriVistaTeam(){
       chip.dataset.title=m.Title;
       chip.dataset.colore=colore;
       chip.style.cssText=`background:${colore}22;border-color:${colore};color:${colore}`;
-      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${colore};display:inline-block;flex-shrink:0"></span> ${m.Title.split(' ')[0]} <span style="font-size:9px;opacity:.7">${m.Title.split(' ').slice(-1)[0]}</span>`;
+      chip.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${colore};display:inline-block;flex-shrink:0"></span> ${cognomeNome(m.Title)}`;
       chip.title=`Clicca per filtrare — tieni premuto Ctrl per selezionare più persone`;
       chip.onclick=(e)=>toggleChipFiltro(m.Title, e);
       filtriDiv.appendChild(chip);
@@ -3785,7 +3780,7 @@ function aggiornaFiltroVisual(){
   if(nessuno){
     sottotitolo.textContent=`${vistaTeamData.membri.length} persone — Anno ${vistaTeamData.anno}`;
   } else {
-    const nomi=[...filtroAttivo].map(t=>t.split(' ')[0]).join(', ');
+    const nomi=[...filtroAttivo].map(t=>cognomeNome(t)).join(', ');
     sottotitolo.textContent=`Filtro: ${nomi} — Anno ${vistaTeamData.anno}`;
   }
 }
@@ -3855,7 +3850,7 @@ function disegnaCalTeamFiltrato(){
               'background:rgba(0,0,0,.55);border-radius:3px;padding:0 2px;line-height:1.4';
             el.appendChild(badge);
           }
-          el.title=chi.map(n=>n.Title.split(' ')[0]).join(', ');
+          el.title=chi.map(n=>cognomeNome(n.Title)).join(', ');
         }
       }
       riga.giorni.push(el);
@@ -3882,7 +3877,7 @@ async function stampaPDFTeam(){
   if(!vistaTeamData){toast('Prima apri la vista team','rosso');return;}
   const {anno,fx,membri,ferieData}=vistaTeamData;
   const membriFiltrati=filtroAttivo.size>0?membri.filter(m=>filtroAttivo.has(m.Title)):membri;
-  const titoloFiltro=filtroAttivo.size>0?` — Filtro: ${[...filtroAttivo].map(t=>t.split(' ')[0]).join(', ')}`:'';
+  const titoloFiltro=filtroAttivo.size>0?` — Filtro: ${[...filtroAttivo].map(t=>cognomeNome(t)).join(', ')}`:'';
   const oggiIso=isoDate(new Date());
   let html=`<style>
     body{font-family:Arial,sans-serif;font-size:9px;}
@@ -3896,7 +3891,7 @@ async function stampaPDFTeam(){
     .gh.wk{color:#EF4444}.gh.nw{color:#94A3B8;font-size:6px}
     .gd{text-align:center;font-size:7px;padding:1px 0;border-radius:2px;position:relative}
     .gd.fest{background:#FEF2F2;color:#EF4444}.gd.wkd{background:#F0F9FF;color:#94A3B8}
-    .gd.oggi{background:#F59E0B;color:#fff;border-radius:50%}
+    .gd.oggi{background:#D97706;color:#fff;border-radius:50%}
     .dots{display:flex;justify-content:center;gap:1px;position:absolute;bottom:0;left:0;right:0}
     .dot{font-size:5px;line-height:1}
     .nw{text-align:center;font-size:6px;color:#94A3B8}
@@ -3918,7 +3913,7 @@ async function stampaPDFTeam(){
     const colore=PALETTE[membri.indexOf(m)%PALETTE.length];
     const giorni=(ferieData[m.Title]&&ferieData[m.Title][String(anno)])||[];
     ferieTeam[m.Title]={ferie:new Set(giorni),colore};
-    html+=`<span class="litem"><span class="ldot" style="background:${colore}"></span>${m.Title.split(' ')[0]} ${m.Title.split(' ').slice(-1)[0]}</span>`;
+    html+=`<span class="litem"><span class="ldot" style="background:${colore}"></span>${cognomeNome(m.Title)}</span>`;
   });
   html+='</div><div class="grid">';
 
@@ -4025,7 +4020,7 @@ async function stampaPDFTeam(){
         <td><b>${meseDa}${meseA}</b></td>
         <td>${da.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'})}</td>
         <td>${a.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'})}</td>
-        <td style="text-align:center;font-weight:700;color:#16A34A">${gg}</td>
+        <td style="text-align:center;font-weight:700;color:#15803D">${gg}</td>
       </tr>`;
     });
     html+='</table></div>';
