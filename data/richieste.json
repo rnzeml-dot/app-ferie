@@ -157,10 +157,10 @@
       "2026-06-22"
     ],
     "NoteRisorsa": "",
-    "Stato": "in_attesa",
+    "Stato": "approvata",
     "DataInvio": "2026-03-13T20:53:26.949Z",
-    "Approvatore": "",
-    "DataRisposta": "",
+    "Approvatore": "EMILIANO RONZAT",
+    "DataRisposta": "2026-03-14T13:55:57.384Z",
     "MotivazioneRifiuto": "",
     "Letta": false
   }
