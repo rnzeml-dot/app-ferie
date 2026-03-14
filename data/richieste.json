@@ -34,5 +34,23 @@
     "DataRisposta": "2026-03-14T22:15:24.905Z",
     "MotivazioneRifiuto": "",
     "Letta": true
+  },
+  {
+    "id": 1773526557247,
+    "Tipo": "annullamento_sw",
+    "Dipendente": "ANDREA MASI",
+    "Responsabile": "EMILIANO RONZAT",
+    "Anno": 2026,
+    "Giorni": [
+      "2026-05-11",
+      "2026-05-18"
+    ],
+    "Stato": "in_attesa",
+    "NoteRisorsa": "a",
+    "DataInvio": "2026-03-14T22:15:57.248Z",
+    "Approvatore": "",
+    "DataRisposta": "",
+    "MotivazioneRifiuto": "",
+    "Letta": false
   }
 ]
