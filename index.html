@@ -1700,6 +1700,148 @@ function aggiornaSidebar(){
   document.getElementById('riepilogoMensileBody').style.display=dettaglioAperto?'':'none';
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   VISTA MESE ESPANSA (click su intestazione mese)
+═══════════════════════════════════════════════════════════════════ */
+// contesto: 'personale' | 'team' | 'risorsa'
+function apriVistaMese(mese, anno, contesto, datiExtra){
+  let existing=document.getElementById('_overlayVistaMese');
+  if(existing)existing.remove();
+
+  const fx=festivita(anno);
+  const oggi=isoDate(new Date());
+  const nomeMese=MESI[mese-1];
+  const totalGiorni=new Date(anno,mese,0).getDate();
+  const primoGiorno=new Date(anno,mese-1,1);
+  const dow=(primoGiorno.getDay()+6)%7; // 0=Lun
+
+  // Costruisci header colori in base al contesto
+  let titolo,sottotitolo,colHdr;
+  if(contesto==='personale'){
+    titolo=`${nomeMese} ${anno}`;
+    sottotitolo=utenteCorrente?.Title||'';
+    colHdr='var(--blu)';
+  } else if(contesto==='team'){
+    titolo=`${nomeMese} ${anno} — Team`;
+    sottotitolo=`${(datiExtra?.membriFiltrati||[]).length} persone`;
+    colHdr='var(--teal)';
+  } else {
+    titolo=`${nomeMese} ${anno} — ${datiExtra?.nome||''}`;
+    sottotitolo='Vista singola risorsa';
+    colHdr='#7C3AED';
+  }
+
+  // Genera griglia giorni
+  const celle=[];
+  // Intestazioni W + giorni settimana
+  const hdrs=['W','Lu','Ma','Me','Gi','Ve','Sa','Do'];
+
+  // Righe settimane
+  const righe=[];
+  let riga={nw:getISOWeek(primoGiorno),offset:dow,giorni:[]};
+  for(let g=1;g<=totalGiorni;g++){
+    const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
+    if(dw===0&&g>1){righe.push(riga);riga={nw:getISOWeek(d),offset:0,giorni:[]};}
+    righe.push&&(void 0); // no-op
+    riga.giorni.push({g,iso,d,dw});
+  }
+  righe.push(riga);
+
+  // Genera HTML celle per contesto
+  const cellHtml=(giorno)=>{
+    const {g,iso,d}=giorno;
+    if(fx[iso]){
+      return `<div style="background:#FEF2F2;color:#EF4444;font-weight:700;border-radius:6px;padding:4px 2px;text-align:center;font-size:13px" title="${fx[iso]}">${g}<div style="font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;opacity:.8">${fx[iso]}</div></div>`;
+    }
+    const isWkd=d.getDay()===0||d.getDay()===6;
+    if(isWkd){
+      return `<div style="background:#F0F9FF;color:#94A3B8;border-radius:6px;padding:4px 2px;text-align:center;font-size:13px">${g}</div>`;
+    }
+    const isOggi=iso===oggi;
+    const bordo=isOggi?'2px solid var(--oggi-bg)':'1px solid var(--bordo)';
+
+    if(contesto==='personale'){
+      const haFerie=ferieLocali.has(iso),haPermesso=!!permessiLocali[iso],haSW=swLocali.has(iso);
+      let bg='var(--card)',color='var(--testo)',extra='';
+      if(haFerie&&haSW) bg='linear-gradient(135deg,var(--ferie-bg) 50%,var(--teal) 50%)',color='#fff';
+      else if(haFerie&&haPermesso) bg='linear-gradient(135deg,var(--ferie-bg) 50%,var(--azzurro) 50%)',color='#fff';
+      else if(haPermesso&&haSW) bg='linear-gradient(135deg,var(--azzurro) 50%,var(--teal) 50%)',color='#fff';
+      else if(haFerie) bg='var(--ferie-bg)',color='#fff';
+      else if(haPermesso) bg='var(--azzurro)',color='#fff';
+      else if(haSW) bg='var(--teal)',color='#fff';
+      const lbl=haPermesso?`<div style="font-size:8px">${permessiLocali[iso].ore}h${haSW?' SW':''}</div>`:haSW?`<div style="font-size:8px">SW</div>`:'';
+      return `<div style="background:${bg};color:${color};border-radius:6px;padding:6px 2px;text-align:center;font-size:14px;border:${bordo};min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" onclick="chiudiVistaMese();apriPopupTipo('${iso}')">${g}${lbl}</div>`;
+    }
+
+    if(contesto==='risorsa'){
+      const {ferie,permessi,sw}=datiExtra;
+      const haFerie=ferie.has(iso),haPermesso=!!permessi[iso],haSW=sw.has(iso);
+      let bg='var(--card)',color='var(--testo)';
+      if(haFerie&&haSW) bg='linear-gradient(135deg,var(--ferie-bg) 50%,var(--teal) 50%)',color='#fff';
+      else if(haFerie&&haPermesso) bg='linear-gradient(135deg,var(--ferie-bg) 50%,var(--azzurro) 50%)',color='#fff';
+      else if(haPermesso&&haSW) bg='linear-gradient(135deg,var(--azzurro) 50%,var(--teal) 50%)',color='#fff';
+      else if(haFerie) bg='var(--ferie-bg)',color='#fff';
+      else if(haPermesso) bg='var(--azzurro)',color='#fff';
+      else if(haSW) bg='var(--teal)',color='#fff';
+      const lbl=haPermesso?`<div style="font-size:8px">${permessi[iso].ore}h${haSW?' SW':''}</div>`:haSW?`<div style="font-size:8px">SW</div>`:'';
+      return `<div style="background:${bg};color:${color};border-radius:6px;padding:6px 2px;text-align:center;font-size:14px;border:${bordo};min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center">${g}${lbl}</div>`;
+    }
+
+    // Team: mostra un dot colorato per ogni membro con ferie
+    const {membriFiltrati,ferieTeam}=datiExtra;
+    const dotsHtml=membriFiltrati.filter(m=>{
+      const ft=ferieTeam[m.Title];
+      return ft&&ft.ferie.has(iso);
+    }).map(m=>{
+      const ft=ferieTeam[m.Title];
+      const nome=m.Title.split(' ')[0];
+      return `<div style="font-size:9px;background:${ft.colore}22;color:${ft.colore};border:1px solid ${ft.colore};border-radius:3px;padding:0 3px;margin:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${nome}</div>`;
+    }).join('');
+    return `<div style="background:var(--card);border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;border:${bordo};min-height:52px;display:flex;flex-direction:column;align-items:center">
+      <div style="font-weight:600;margin-bottom:2px">${g}</div>
+      <div style="display:flex;flex-direction:column;width:100%;gap:1px">${dotsHtml}</div>
+    </div>`;
+  };
+
+  // Costruisci griglia HTML
+  const grdStyle='display:grid;grid-template-columns:30px repeat(7,1fr);gap:4px;margin-bottom:4px';
+  let grdHtml=`<div style="${grdStyle}">`;
+  hdrs.forEach((h,i)=>{
+    const col=i===0?'var(--debole)':i>=6?'var(--rosso)':'var(--blu)';
+    grdHtml+=`<div style="text-align:center;font-size:11px;font-weight:700;color:${col}">${h}</div>`;
+  });
+  grdHtml+='</div>';
+  righe.forEach(r=>{
+    grdHtml+=`<div style="${grdStyle}">`;
+    grdHtml+=`<div style="text-align:center;font-size:10px;color:var(--debole);padding-top:6px">${r.nw}</div>`;
+    for(let p=0;p<(r.offset||0);p++) grdHtml+=`<div></div>`;
+    r.giorni.forEach(g=>grdHtml+=cellHtml(g));
+    const tot=(r.offset||0)+r.giorni.length;
+    for(let p=tot;p<7;p++) grdHtml+=`<div></div>`;
+    grdHtml+='</div>';
+  });
+
+  const overlay=document.createElement('div');
+  overlay.id='_overlayVistaMese';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick=e=>{if(e.target===overlay)chiudiVistaMese();};
+  overlay.innerHTML=`<div style="background:var(--card);border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.35);width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="background:${colHdr};padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div style="flex:1">
+        <div style="color:#fff;font-weight:700;font-size:16px">${titolo}</div>
+        <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:2px">${sottotitolo}</div>
+      </div>
+      <button onclick="chiudiVistaMese()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;padding:6px 14px;cursor:pointer;font-size:13px">✕ Chiudi</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px">${grdHtml}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function chiudiVistaMese(){
+  const el=document.getElementById('_overlayVistaMese');
+  if(el)el.remove();
+}
+
 function apriDettaglioMese(nomeMese, giorni, tipo, anno){
   let existing=document.getElementById('_overlayDettaglioMese');
   if(existing)existing.remove();
@@ -1807,6 +1949,8 @@ async function disegnaCal(){
     const card=document.createElement('div');card.className='mese-card';
     const hdr=document.createElement('div');hdr.className='mese-hdr';
     hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}  ${anno}</span>`;
+    hdr.style.cursor='pointer';hdr.title=`Clicca per vista completa ${MESI[mese-1]}`;
+    hdr.onclick=()=>apriVistaMese(mese,anno,'personale');
     card.appendChild(hdr);
     const mgrid=document.createElement('div');mgrid.className='mese-grid';
     const hwk=document.createElement('div');hwk.className='giorno-hdr nw';hwk.textContent='W';mgrid.appendChild(hwk);
@@ -1974,11 +2118,11 @@ function apriPopupTipo(iso){
     if(left+pw>window.innerWidth-8)popup.style.left=Math.max(8,window.innerWidth-pw-8)+'px';
     if(top+ph>window.innerHeight+window.scrollY-8)popup.style.top=(rect.top+window.scrollY-ph-6)+'px';
   });
-  setTimeout(()=>document.addEventListener('click',e=>{
-    if(_popupTipoEl&&_popupTipoEl.contains(e.target))return;
-    chiudiPopupTipo();
-  },{once:true}),0);
 }
+// Listener globale permanente per chiudere il popup cliccando fuori
+document.addEventListener('click',e=>{
+  if(_popupTipoEl&&!_popupTipoEl.contains(e.target))chiudiPopupTipo();
+});
 function chiudiPopupTipo(){
   if(_popupTipoEl){_popupTipoEl.remove();_popupTipoEl=null;}
 }
@@ -2299,6 +2443,67 @@ async function stampaPDF(){
       </tr>`;
     });
     html+='</table>';
+  }
+
+  // Dettaglio permessi per esteso
+  const giorniPermessi=Object.keys(permessiLocali).filter(g=>g.startsWith(anno)).sort();
+  if(giorniPermessi.length){
+    const totOreAnno=giorniPermessi.reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0);
+    html+=`<h2>Dettaglio permessi — ${nome}</h2>
+    <table class="riepilogo">
+      <tr><th>#</th><th>Mese</th><th>Data</th><th>Ore</th><th>Note</th></tr>`;
+    giorniPermessi.forEach((iso,i)=>{
+      const d=isoToDate(iso);
+      const p=permessiLocali[iso];
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#0891B2">${i+1}</td>
+        <td><b>${MESI[d.getMonth()]}</b></td>
+        <td>${d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
+        <td style="text-align:center;font-weight:700;color:#0891B2">${p?.ore||0}h</td>
+        <td style="color:#64748B;font-style:italic">${p?.note||'—'}</td>
+      </tr>`;
+    });
+    html+=`<tr style="background:#EFF6FF">
+      <td colspan="3"><b>Totale ore permessi</b></td>
+      <td style="text-align:center;font-weight:700;color:#0891B2">${totOreAnno}h</td>
+      <td></td>
+    </tr></table>`;
+  }
+
+  // Dettaglio smartworking per esteso
+  const giorniSWanno=[...swLocali].filter(g=>g.startsWith(anno)).sort();
+  if(giorniSWanno.length){
+    // Raggruppa in periodi contigui
+    const periodiSW=[];let currSW=null;
+    for(const g of giorniSWanno){
+      if(!currSW){currSW={da:g,a:g,lista:[g]};}
+      else{
+        const diff=(isoToDate(g)-isoToDate(currSW.a))/(1000*60*60*24);
+        if(diff<=3){currSW.a=g;currSW.lista.push(g);}
+        else{periodiSW.push(currSW);currSW={da:g,a:g,lista:[g]};}
+      }
+    }
+    if(currSW)periodiSW.push(currSW);
+
+    html+=`<h2>Dettaglio smartworking — ${nome}</h2>
+    <table class="riepilogo">
+      <tr><th>#</th><th>Mese</th><th>Dal</th><th>Al</th><th>Giorni</th></tr>`;
+    periodiSW.forEach((p,i)=>{
+      const da=isoToDate(p.da),a=isoToDate(p.a);
+      const meseDa=MESI[da.getMonth()];
+      const meseA=da.getMonth()===a.getMonth()?'':`/ ${MESI[a.getMonth()]}`;
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#0D9488">${i+1}</td>
+        <td><b>${meseDa}${meseA}</b></td>
+        <td>${da.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
+        <td>${a.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'})}</td>
+        <td style="text-align:center;font-weight:700;color:#0D9488">${p.lista.length}</td>
+      </tr>`;
+    });
+    html+=`<tr style="background:#F0FDFA">
+      <td colspan="4"><b>Totale giorni smartworking</b></td>
+      <td style="text-align:center;font-weight:700;color:#0D9488">${giorniSWanno.length}</td>
+    </tr></table>`;
   }
 
   // Tabella riepilogo mensile con festività per nome
@@ -3134,6 +3339,8 @@ function vrDisegnaCal(nome,anno,ferie,permessi,sw,fx,oggi){
     const nomiFest=[];
     for(let g=1;g<=totalG;g++){const iso=isoDate(new Date(anno,mese-1,g));if(fx[iso])nomiFest.push(fx[iso]);}
     hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}</span>${nomiFest.length?`<span style="font-size:9px;color:var(--rosso);margin-left:4px">${nomiFest.join(', ')}</span>`:''}`;
+    hdr.style.cursor='pointer';hdr.title=`Vista completa ${MESI[mese-1]}`;
+    hdr.onclick=()=>apriVistaMese(mese,anno,'risorsa',{nome,ferie,permessi,sw});
     card.appendChild(hdr);
     const mgrid=document.createElement('div');mgrid.className='mese-grid';
     const hwk=document.createElement('div');hwk.className='giorno-hdr nw';hwk.textContent='W';mgrid.appendChild(hwk);
@@ -3603,6 +3810,11 @@ function disegnaCalTeamFiltrato(){
     const card=document.createElement('div');card.className='mese-card';
     const hdr=document.createElement('div');hdr.className='mese-hdr';
     hdr.innerHTML=`<span>${MESI[mese-1].toUpperCase()}</span>`;
+    hdr.style.cursor='pointer';hdr.title=`Vista completa ${MESI[mese-1]}`;
+    hdr.onclick=(()=>{
+      const m=mese;
+      return ()=>apriVistaMese(m,anno,'team',{membriFiltrati,ferieTeam});
+    })();
     card.appendChild(hdr);
     const mgrid=document.createElement('div');mgrid.className='mese-grid';
     const hwk=document.createElement('div');hwk.className='giorno-hdr nw';hwk.textContent='W';mgrid.appendChild(hwk);
