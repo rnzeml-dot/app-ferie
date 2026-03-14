@@ -454,9 +454,29 @@
           <div class="sep"></div>
         </span>
         <span id="toolbarRisorsa" class="hidden" style="display:contents">
-          <button class="btn btn-ambra" onclick="apriInviaRichiesta()">▶ Invia ferie</button>
-          <button class="btn" style="background:var(--azzurro)" onclick="apriInviaPermessi()">▶ Invia permessi</button>
-          <button class="btn" style="background:var(--teal)" onclick="apriInviaSW()">▶ Invia SW</button>
+          <div class="team-menu-wrap">
+            <button class="btn btn-ambra" onclick="toggleInvioMenu(event)">▶ Invia richieste ▾</button>
+            <div class="team-dropdown" id="invioDropdown" style="min-width:220px">
+              <div id="invioRiepilogo" style="padding:8px 14px 4px;font-size:11px;color:var(--debole);border-bottom:1px solid var(--bordo);margin-bottom:4px"></div>
+              <button class="tdrop-item" onclick="apriInviaRichiesta();chiudiInvioMenu()">
+                <span style="width:10px;height:10px;border-radius:50%;background:var(--verde);display:inline-block;flex-shrink:0"></span>
+                <span id="invioLblFerie">🌿 Invia ferie</span>
+              </button>
+              <button class="tdrop-item" onclick="apriInviaPermessi();chiudiInvioMenu()">
+                <span style="width:10px;height:10px;border-radius:50%;background:var(--azzurro);display:inline-block;flex-shrink:0"></span>
+                <span id="invioLblPermessi">🕐 Invia permessi</span>
+              </button>
+              <button class="tdrop-item" onclick="apriInviaSW();chiudiInvioMenu()">
+                <span style="width:10px;height:10px;border-radius:50%;background:var(--teal);display:inline-block;flex-shrink:0"></span>
+                <span id="invioLblSW">🏠 Invia smartworking</span>
+              </button>
+              <div class="tdrop-sep"></div>
+              <button class="tdrop-item" onclick="inviaTutto();chiudiInvioMenu()" style="font-weight:700;color:#7C3AED">
+                <span style="width:10px;height:10px;border-radius:50%;background:#7C3AED;display:inline-block;flex-shrink:0"></span>
+                Invia tutto insieme
+              </button>
+            </div>
+          </div>
           <div class="sep"></div>
         </span>
         <button class="btn" style="background:#475569" onclick="apriStorico()">📋 Storico</button>
@@ -1746,15 +1766,16 @@ function aggiornaSidebar(){
   body.innerHTML='';
   for(let m=1;m<=12;m++){
     const totalGiorni=new Date(anno,m,0).getDate();
-    let ferie=0,wkd=0,swMese=0;
+    let ferie=0,lavDisp=0,swMese=0;
     const nomiFest=[];
     let orePermMese=0;
     const giorniFerie=[],giorniSW=[],giorniPerm=[];
     for(let g=1;g<=totalGiorni;g++){
       const d=new Date(anno,m-1,g),iso=isoDate(d);
       if(fx[iso])nomiFest.push(`${g} ${fx[iso]}`);
-      else if(d.getDay()===0||d.getDay()===6)wkd++;
+      else if(d.getDay()===0||d.getDay()===6){/* weekend, non contare */}
       else {
+        lavDisp++; // giorno lavorativo disponibile
         if(ferieLocali.has(iso)){ferie++;giorniFerie.push(iso);}
         if(swLocali.has(iso)){swMese++;giorniSW.push(iso);}
       }
@@ -1786,7 +1807,8 @@ function aggiornaSidebar(){
     const spSW=mkSpan(swMese>0?swMese+'sw':'','var(--teal)',giorniSW,'sw');
     const spWkd=document.createElement('span');
     spWkd.style.cssText='color:var(--debole);font-size:10px';
-    spWkd.textContent=wkd+'wkd';
+    spWkd.title='Giorni lavorativi del mese (esclusi weekend e festività)';
+    spWkd.textContent=lavDisp+'gg';
 
     if(typeof spF==='string') rigaTop.insertAdjacentHTML('beforeend',spF);
     else rigaTop.appendChild(spF);
@@ -2596,19 +2618,20 @@ async function stampaPDF(){
     </tr></table>`;
   }
 
-  // Tabella riepilogo mensile con festività per nome
+  // Tabella riepilogo mensile
   html+=`<h2>Riepilogo mensile</h2>
   <table class="riepilogo">
-    <tr><th>Mese</th><th>Giorni ferie</th><th>Ore permessi</th><th>Smartworking</th><th>Festività</th><th>Weekend</th></tr>`;
+    <tr><th>Mese</th><th>Gg lav. disp.</th><th>Giorni ferie</th><th>Ore permessi</th><th>Smartworking</th><th>Festività</th></tr>`;
   for(let m=0;m<12;m++){
     const pm=perMese[m]||{lav:0,fest:0,wkd:0,ferie:[]};
     const nomiFestMese=[];
     const totalGiorni=new Date(anno,m+1,0).getDate();
-    let orePermMese=0;
-    let swMese=0;
+    let orePermMese=0,swMese=0,lavDisp=0;
     for(let g=1;g<=totalGiorni;g++){
       const iso=isoDate(new Date(anno,m,g));
+      const d=new Date(anno,m,g);
       if(fx[iso])nomiFestMese.push(`${g} ${fx[iso]}`);
+      else if(d.getDay()!==0&&d.getDay()!==6)lavDisp++;
       if(permessiLocali[iso])orePermMese+=permessiLocali[iso].ore||0;
       if(swLocali.has(iso))swMese++;
     }
@@ -2622,11 +2645,11 @@ async function stampaPDF(){
       ?`<span style="color:#EA580C;font-weight:700">${swMese}gg</span>`
       :`<span style="color:#94A3B8">—</span>`;
     html+=`<tr><td><b>${MESI[m]}</b></td>
+      <td style="text-align:center;color:#64748B">${lavDisp}</td>
       <td style="text-align:center">${pm.lav||0}</td>
       <td style="text-align:center">${oreCell}</td>
       <td style="text-align:center">${swCell}</td>
-      <td>${festCell}</td>
-      <td style="text-align:center">${pm.wkd||0}</td></tr>`;
+      <td>${festCell}</td></tr>`;
   }
   html+='</table>';
 
@@ -3927,20 +3950,22 @@ function stampaPDFRisorsa(){
 
   // Riepilogo mensile
   html+=`<h2>Riepilogo mensile</h2>
-  <table class="tab"><tr><th>Mese</th><th style="color:#15803D">Ferie</th><th style="color:#1D4ED8">Permessi (h)</th><th style="color:#EA580C">Smartworking</th></tr>`;
+  <table class="tab"><tr><th>Mese</th><th style="color:#64748B">Gg lav.</th><th style="color:#15803D">Ferie</th><th style="color:#1D4ED8">Permessi (h)</th><th style="color:#EA580C">Smartworking</th></tr>`;
   for(let m=1;m<=12;m++){
     const totalG=new Date(anno,m,0).getDate();
-    let nF=0,nOre=0,nSW=0;
+    let nF=0,nOre=0,nSW=0,lavDisp=0;
     for(let g=1;g<=totalG;g++){
       const iso=isoDate(new Date(anno,m-1,g));
       const d=new Date(anno,m-1,g);
       if(d.getDay()===0||d.getDay()===6||fx[iso])continue;
+      lavDisp++;
       if(ferie.has(iso))nF++;
       if(permessi[iso])nOre+=permessi[iso].ore||0;
       if(sw.has(iso))nSW++;
     }
-    if(nF||nOre||nSW) html+=`<tr>
+    html+=`<tr>
       <td><b>${MESI[m-1]}</b></td>
+      <td style="text-align:center;color:#64748B">${lavDisp}</td>
       <td style="text-align:center;${nF?'color:#15803D;font-weight:700':''}">${nF||'—'}</td>
       <td style="text-align:center;${nOre?'color:#1D4ED8;font-weight:700':''}">${nOre?nOre+'h':'—'}</td>
       <td style="text-align:center;${nSW?'color:#EA580C;font-weight:700':''}">${nSW||'—'}</td>
@@ -4719,6 +4744,102 @@ function chiudiTuttiMenu(){
   chiudiUserMenu();
   chiudiTeamMenu();
   chiudiVistaTeamMenu();
+  chiudiInvioMenu();
+}
+function toggleInvioMenu(e){
+  e.stopPropagation();
+  const dd=document.getElementById('invioDropdown');
+  const isOpen=dd.classList.contains('open');
+  chiudiTuttiMenu();
+  if(!isOpen){
+    dd.classList.add('open');
+    aggiornaRiepilogoInvio();
+  }
+}
+function chiudiInvioMenu(){
+  const dd=document.getElementById('invioDropdown');
+  if(dd)dd.classList.remove('open');
+}
+// Aggiorna i contatori nel dropdown invio
+function aggiornaRiepilogoInvio(){
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const fx=festivita(anno);
+  const nFerie=[...ferieLocali].filter(g=>g.startsWith(anno)&&!fx[g]).length;
+  const nPerm=Object.keys(permessiLocali).filter(g=>g.startsWith(anno)&&!fx[g]).length;
+  const nSW=[...swLocali].filter(g=>g.startsWith(anno)&&!fx[g]).length;
+  const totOre=Object.keys(permessiLocali).filter(g=>g.startsWith(anno)&&!fx[g])
+    .reduce((t,g)=>t+(permessiLocali[g]?.ore||0),0);
+
+  const riepilogo=document.getElementById('invioRiepilogo');
+  if(riepilogo){
+    const parti=[];
+    if(nFerie) parti.push(`${nFerie}gg ferie`);
+    if(nPerm) parti.push(`${totOre}h permessi`);
+    if(nSW) parti.push(`${nSW}gg SW`);
+    riepilogo.textContent=parti.length?'Da inviare: '+parti.join(' · '):'Nessun dato da inviare';
+  }
+  // Aggiorna label con contatori
+  const lF=document.getElementById('invioLblFerie');
+  const lP=document.getElementById('invioLblPermessi');
+  const lS=document.getElementById('invioLblSW');
+  if(lF) lF.textContent=`🌿 Invia ferie${nFerie?' ('+nFerie+'gg)':''}`;
+  if(lP) lP.textContent=`🕐 Invia permessi${nPerm?' ('+totOre+'h)':''}`;
+  if(lS) lS.textContent=`🏠 Invia smartworking${nSW?' ('+nSW+'gg)':''}`;
+}
+// Invia tutto in sequenza — ferie, permessi, SW — saltando quelli vuoti
+async function inviaTutto(){
+  const anno=parseInt(document.getElementById('annoInput').value);
+  const fx=festivita(anno);
+  const haFerie=[...ferieLocali].filter(g=>g.startsWith(anno)&&!fx[g]).length>0;
+  const haPerm=Object.keys(permessiLocali).filter(g=>g.startsWith(anno)&&!fx[g]).length>0;
+  const haSW=[...swLocali].filter(g=>g.startsWith(anno)&&!fx[g]).length>0;
+
+  if(!haFerie&&!haPerm&&!haSW){toast('Nessun dato da inviare','rosso');return;}
+
+  const parti=[];
+  if(haFerie) parti.push('ferie');
+  if(haPerm) parti.push('permessi');
+  if(haSW) parti.push('smartworking');
+
+  if(!confirm(`Inviare tutte le richieste in attesa?\n\n• ${parti.join('\n• ')}\n\nVerranno create richieste separate per ogni tipo.`))return;
+
+  let inviati=0,errori=[];
+
+  if(haFerie){
+    try{
+      await confermaRichiesta();
+      inviati++;
+    }catch(e){errori.push('Ferie: '+e.message);}
+  }
+  if(haPerm){
+    try{
+      await confermaInviaPermessi();
+      inviati++;
+    }catch(e){errori.push('Permessi: '+e.message);}
+  }
+  if(haSW){
+    // SW: controlla se ci sono deroge — se sì apri il modal dedicato, altrimenti invia direttamente
+    const giorni=[...swLocali].filter(g=>g.startsWith(anno)&&!fx[g]).sort();
+    const settimaneNo=new Set();
+    giorni.forEach(g=>{
+      const nw=getISOWeek(isoToDate(g));
+      if(giorni.filter(x=>getISOWeek(isoToDate(x))===nw).length>SW_MAX_WEEK)settimaneNo.add(nw);
+    });
+    if(settimaneNo.size>0){
+      // Ci sono deroge: deve aprire il modal per la checkbox
+      toast('Smartworking con deroga — compila il modal SW','ambra');
+      setTimeout(()=>apriInviaSW(),400);
+    } else {
+      try{
+        document.getElementById('swNoteInvio').value='';
+        await confermaInviaSW();
+        inviati++;
+      }catch(e){errori.push('SW: '+e.message);}
+    }
+  }
+
+  if(inviati>0) toast(`✓ ${inviati} richiesta/e inviata/e`,'verde');
+  if(errori.length) toast('Errori: '+errori.join(', '),'rosso');
 }
 function toggleTeamMenu(e){
   e.stopPropagation();
