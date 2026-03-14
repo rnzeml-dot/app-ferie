@@ -3217,24 +3217,42 @@ function renderDashboard(anno,righe){
   });
   html+='</tbody></table></div>';
 
-  // Grafico mensile ferie per tutto il team (distribuzione per mese)
-  const totalFeriePerMese=Array(12).fill(0);
-  righe.forEach(r=>r.perMese.forEach((m,i)=>totalFeriePerMese[i]+=m.nF));
-  const maxVal=Math.max(...totalFeriePerMese,1);
-  html+=`<div style="margin-top:20px"><div style="font-size:12px;font-weight:700;color:var(--debole);
-    text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Distribuzione ferie per mese — team</div>
-    <div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 4px">`;
-  MESI.forEach((m,i)=>{
-    const h=totalFeriePerMese[i]?Math.max(8,Math.round(totalFeriePerMese[i]/maxVal*72)):0;
-    html+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-      ${totalFeriePerMese[i]?`<div style="font-size:9px;color:var(--verde);font-weight:700">${totalFeriePerMese[i]}</div>`:''}
-      <div style="width:100%;background:var(--verde);border-radius:3px 3px 0 0;height:${h}px;opacity:.85"></div>
-      <div style="font-size:8px;color:var(--debole)">${m.substring(0,3)}</div>
-    </div>`;
-  });
-  html+='</div></div>';
-
+  html+=buildGrafici(righe);
   contenuto.innerHTML=html;
+}
+
+// Funzione riutilizzabile: costruisce i 3 grafici a barre mensili
+function buildGrafici(righe){
+  const feriePerMese=Array(12).fill(0);
+  const permPerMese=Array(12).fill(0);
+  const swPerMese=Array(12).fill(0);
+  righe.forEach(r=>r.perMese.forEach((m,i)=>{
+    feriePerMese[i]+=m.nF;
+    permPerMese[i]+=m.nP;
+    swPerMese[i]+=m.nS;
+  }));
+
+  function barChart(dati, colore, labelCol, titolo, unitaSuffix){
+    const maxV=Math.max(...dati,1);
+    let html=`<div style="margin-top:18px;background:var(--grigio);border-radius:10px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:${labelCol};text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">${titolo}</div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:90px;padding:0 2px">`;
+    MESI.forEach((m,i)=>{
+      const val=dati[i];
+      const hpx=val?Math.max(6,Math.round(val/maxV*78)):0;
+      html+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:8px;color:${labelCol};font-weight:700;min-height:12px">${val?val+unitaSuffix:''}</div>
+        <div style="width:100%;background:${colore};border-radius:3px 3px 0 0;height:${hpx}px;opacity:.85;transition:height .3s"></div>
+        <div style="font-size:7.5px;color:var(--debole);white-space:nowrap">${m.substring(0,3)}</div>
+      </div>`;
+    });
+    html+='</div></div>';
+    return html;
+  }
+
+  return barChart(feriePerMese,'var(--verde)','var(--verde)','📅 Distribuzione ferie per mese','')
+       + barChart(permPerMese,'var(--azzurro)','var(--azzurro)','🕐 Ore permessi per mese','h')
+       + barChart(swPerMese,'var(--teal)','var(--teal)','🏠 Giorni smartworking per mese','');
 }
 
 async function apriDashboardSingola(nomeRisorsa, anno){
@@ -3352,7 +3370,8 @@ async function apriDashboardSingola(nomeRisorsa, anno){
   <div style="width:100%;text-align:right;font-size:12px;font-weight:700;color:var(--teal);padding-top:2px">Totale: ${giorniSW.length} giorni</div>
   </div>`:''}`;
 
-  // Apri modale
+  // Aggiungi grafici mensili basati su perMese della risorsa
+  bodyHtml += buildGrafici([r]);
   let existing=document.getElementById('_overlayDashSingola');
   if(existing)existing.remove();
   const overlay=document.createElement('div');
@@ -3454,6 +3473,7 @@ async function stampaDashboardSingola(nomeRisorsa, anno){
     <tr style="background:#FFF7ED!important"><td><b>Totale</b></td>
       <td style="font-weight:700;color:#EA580C">${giorniSW.length} giorni</td></tr></table>`:''}`;
 
+  html+=buildGraficiPDF([r]);
   apriStampa(html);
 }
 
@@ -3502,7 +3522,43 @@ async function stampaDashboard(){
     ).join('')}<td style="text-align:center;font-weight:700">${r.nFerie}</td></tr>`;
   });
   html+='</table>';
+  html+=buildGraficiPDF(righe);
   apriStampa(html);
+}
+
+// Grafici a barre per PDF (usa hex diretti, non variabili CSS)
+function buildGraficiPDF(righe){
+  const feriePerMese=Array(12).fill(0);
+  const permPerMese=Array(12).fill(0);
+  const swPerMese=Array(12).fill(0);
+  righe.forEach(r=>r.perMese.forEach((m,i)=>{
+    feriePerMese[i]+=m.nF;
+    permPerMese[i]+=m.nP;
+    swPerMese[i]+=m.nS;
+  }));
+
+  function pdfBarChart(dati, colore, labelCol, titolo, unitaSuffix){
+    const maxV=Math.max(...dati,1);
+    let h=`<div style="margin-top:16px;page-break-inside:avoid">
+      <div style="font-size:9px;font-weight:700;color:${labelCol};text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">${titolo}</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:70px;border-bottom:1px solid #E2E8F0;padding:0 2px">`;
+    MESI.forEach((m,i)=>{
+      const val=dati[i];
+      const hpx=val?Math.max(5,Math.round(val/maxV*62)):0;
+      h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px">
+        <div style="font-size:7px;color:${labelCol};font-weight:700;min-height:10px">${val?val+unitaSuffix:''}</div>
+        <div style="width:100%;background:${colore};border-radius:2px 2px 0 0;height:${hpx}px"></div>
+      </div>`;
+    });
+    h+=`</div><div style="display:flex;gap:4px;padding:2px">`;
+    MESI.forEach(m=>h+=`<div style="flex:1;text-align:center;font-size:6.5px;color:#94A3B8">${m.substring(0,3)}</div>`);
+    h+=`</div></div>`;
+    return h;
+  }
+
+  return pdfBarChart(feriePerMese,'#15803D','#15803D','📅 Distribuzione ferie per mese','')
+       + pdfBarChart(permPerMese,'#1D4ED8','#1D4ED8','🕐 Ore permessi per mese','h')
+       + pdfBarChart(swPerMese,'#EA580C','#EA580C','🏠 Giorni smartworking per mese','');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
