@@ -163,5 +163,27 @@
     "DataRisposta": "2026-03-14T13:55:57.384Z",
     "MotivazioneRifiuto": "",
     "Letta": true
+  },
+  {
+    "id": 1773500501235,
+    "Tipo": "permesso",
+    "Dipendente": "ANDREA MASI",
+    "Responsabile": "EMILIANO RONZAT",
+    "Anno": 2026,
+    "Giorni": [
+      "2026-05-12"
+    ],
+    "OrePerGiorno": {
+      "2026-05-12": {
+        "ore": 5,
+        "note": ""
+      }
+    },
+    "Stato": "in_attesa",
+    "DataInvio": "2026-03-14T15:01:41.235Z",
+    "Approvatore": "",
+    "DataRisposta": "",
+    "MotivazioneRifiuto": "",
+    "Letta": false
   }
 ]
