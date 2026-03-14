@@ -346,6 +346,8 @@
           <button class="udrop-item danger" onclick="apriRimuoviDati('ferie');chiudiUserMenu()">✕ Rimuovi ferie anno</button>
           <button class="udrop-item danger" onclick="apriRimuoviDati('permessi');chiudiUserMenu()">✕ Rimuovi permessi anno</button>
           <button class="udrop-item danger" onclick="apriRimuoviDati('sw');chiudiUserMenu()">✕ Rimuovi smartworking anno</button>
+          <div class="udrop-sep" id="sepPuliziaTeam" style="display:none"></div>
+          <button class="udrop-item danger" id="btnPuliziaTeam" style="display:none" onclick="apriPuliziaTeam();chiudiUserMenu()">🗑 Pulizia dati team</button>
           <div class="udrop-sep"></div>
           <button class="udrop-item danger" onclick="logout();chiudiUserMenu()">← Esci</button>
         </div>
@@ -639,6 +641,57 @@
     <div class="modal-body" id="richiesteListBody" style="max-height:60vh;overflow-y:auto"></div>
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayRichiesteMgr')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pulizia dati team (solo caporeparto) -->
+<div class="overlay" id="overlayPuliziaTeam">
+  <div class="modal" style="max-width:520px;width:97%">
+    <div class="modal-hdr" style="background:var(--rosso)">
+      <h2>🗑 Pulizia dati team</h2>
+      <p>Seleziona le risorse e i tipi di dato da eliminare definitivamente</p>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Anno</label>
+        <input type="number" id="puliziaAnno" min="2024" max="2040" style="width:90px"/>
+      </div>
+      <div class="field">
+        <label>Tipo dato da eliminare</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="puliziaFerie" checked> <span style="color:var(--verde);font-weight:700">Ferie</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="puliziaPermessi" checked> <span style="color:var(--azzurro);font-weight:700">Permessi</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="puliziaSW" checked> <span style="color:var(--teal);font-weight:700">Smartworking</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="puliziaRichieste"> <span style="color:var(--ambra);font-weight:700">Richieste</span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label>Risorse</label>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(true)">Tutte</button>
+            <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(false)">Nessuna</button>
+          </div>
+        </div>
+        <div id="puliziaListaRisorse" style="max-height:200px;overflow-y:auto;border:1px solid var(--bordo);border-radius:8px;padding:4px"></div>
+      </div>
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:4px">
+        <b>⚠️ Attenzione:</b> questa operazione è irreversibile. I dati eliminati non potranno essere recuperati.
+      </div>
+      <div id="puliziaMsg" class="msg-err" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-grigio" onclick="chiudiModal('overlayPuliziaTeam')">Annulla</button>
+      <button class="btn btn-rosso" onclick="confermaPuliziaTeam()">🗑 Elimina dati selezionati</button>
     </div>
   </div>
 </div>
@@ -1072,6 +1125,10 @@ async function doLogin(){
   badge.textContent=membro.Ruolo;badge.className=`badge-ruolo badge-${membro.Ruolo}`;
   if(membro.Ruolo!=='risorsa')document.getElementById('toolbarManager').classList.remove('hidden');
   if(membro.Ruolo!=='caporeparto')document.getElementById('toolbarRisorsa').classList.remove('hidden');
+  // Voce pulizia dati team visibile solo al caporeparto
+  const showPulizia=membro.Ruolo==='caporeparto';
+  document.getElementById('btnPuliziaTeam').style.display=showPulizia?'':'none';
+  document.getElementById('sepPuliziaTeam').style.display=showPulizia?'':'none';
   document.getElementById('annoInput').value=new Date().getFullYear();
   await caricaFerie();await disegnaCal();aggiornaStatobar();aggiornaSidebar();
   await caricaBudget(new Date().getFullYear());
@@ -3141,7 +3198,12 @@ function renderDashboard(anno,righe){
          <div style="font-size:10px;color:var(--debole);margin-top:2px">${percF}%</div>`
       :'<span style="color:var(--debole);font-size:10px">—</span>';
     html+=`<tr style="${bgRow};border-bottom:1px solid var(--bordo)">
-      <td style="padding:8px 10px;font-weight:700">${r.nome}<br><span style="font-size:10px;color:var(--debole);font-weight:400">${r.ruolo}</span></td>
+      <td style="padding:8px 10px;font-weight:700">
+        <span style="cursor:pointer;color:var(--blu);text-decoration:underline dotted" 
+          onclick="apriDashboardSingola('${r.nome.replace(/'/g,"\\'")}',${anno})"
+          title="Apri dettaglio ${r.nome}">${cognomeNome(r.nome)}</span>
+        <br><span style="font-size:10px;color:var(--debole);font-weight:400">${r.ruolo}</span>
+      </td>
       <td style="text-align:center;color:var(--verde);font-weight:700">${r.nFerie}</td>
       <td style="text-align:center;color:var(--debole)">${budF!=null?budF+'gg':'—'}</td>
       <td style="text-align:center;font-weight:700;color:${rimF!=null&&rimF<=5?'var(--rosso)':'var(--testo)'}">${rimF!=null?rimF+'gg':'—'}</td>
@@ -3173,6 +3235,226 @@ function renderDashboard(anno,righe){
   html+='</div></div>';
 
   contenuto.innerHTML=html;
+}
+
+async function apriDashboardSingola(nomeRisorsa, anno){
+  // Recupera la riga dai dati già caricati
+  if(!dashDatiCorrente) return;
+  const {righe, fx} = dashDatiCorrente;
+  const r = righe.find(x => x.nome === nomeRisorsa);
+  if(!r) return;
+
+  // Carica dati completi per la risorsa (ferie, permessi, SW con dettagli)
+  let ferie=new Set(), permessi={}, sw=new Set();
+  try{
+    const [ferieData,permData,swData] = await Promise.all([
+      ghGetFile(PATH_FERIE).catch(()=>({})),
+      ghGetFile(PATH_PERMESSI).catch(()=>({})),
+      ghGetFile(PATH_SW).catch(()=>({}))
+    ]);
+    ferie = new Set((ferieData[nomeRisorsa]?.[String(anno)])||[]);
+    permessi = (permData[nomeRisorsa]?.[String(anno)])||{};
+    sw = new Set((swData[nomeRisorsa]?.[String(anno)])||[]);
+  }catch(e){ toast('Errore caricamento dati: '+e.message,'rosso'); return; }
+
+  const budF = r.bud?.FerieDisponibili||null;
+  const budP = r.bud?.OrePermessiDisponibili||null;
+
+  // Periodi ferie
+  const ferieSort=[...ferie].filter(g=>!fx[g]&&(()=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;})()).sort();
+  const periodi=[];let curr=null;
+  for(const g of ferieSort){
+    if(!curr){curr={da:g,a:g};}
+    else{const diff=(isoToDate(g)-isoToDate(curr.a))/(1000*60*60*24);
+      if(diff<=3)curr.a=g;else{periodi.push(curr);curr={da:g,a:g};}}
+  }
+  if(curr)periodi.push(curr);
+
+  const fmt=iso=>isoToDate(iso).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  const totOreP=Object.values(permessi).reduce((t,v)=>t+(v?.ore||0),0);
+  const giorniSW=[...sw].sort();
+
+  const percF=budF?Math.min(100,Math.round(r.nFerie/budF*100)):null;
+  const colBar=percF!=null?(percF>=100?'#EF4444':percF>=80?'#D97706':'#15803D'):'#15803D';
+
+  let bodyHtml=`
+  <!-- KPI singola risorsa -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+    <div style="background:var(--grigio);border-radius:10px;padding:12px;text-align:center;border-left:4px solid var(--verde)">
+      <div style="font-size:26px;font-weight:800;color:var(--verde)">${r.nFerie}</div>
+      <div style="font-size:10px;color:var(--debole)">Giorni ferie${budF!=null?` / ${budF}`:''}</div>
+      ${percF!=null?`<div style="margin-top:6px;height:6px;background:var(--bordo);border-radius:3px;overflow:hidden">
+        <div style="width:${percF}%;height:100%;background:${colBar};border-radius:3px"></div></div>
+        <div style="font-size:10px;color:${colBar};font-weight:700;margin-top:2px">${percF}%</div>`:''}
+    </div>
+    <div style="background:var(--grigio);border-radius:10px;padding:12px;text-align:center;border-left:4px solid var(--azzurro)">
+      <div style="font-size:26px;font-weight:800;color:var(--azzurro)">${r.nOreP}h</div>
+      <div style="font-size:10px;color:var(--debole)">Ore permessi${budP!=null?` / ${budP}h`:''}</div>
+    </div>
+    <div style="background:var(--grigio);border-radius:10px;padding:12px;text-align:center;border-left:4px solid var(--teal)">
+      <div style="font-size:26px;font-weight:800;color:var(--teal)">${r.nSW}</div>
+      <div style="font-size:10px;color:var(--debole)">Giorni smartworking</div>
+    </div>
+    <div style="background:var(--grigio);border-radius:10px;padding:12px;text-align:center;border-left:4px solid var(--ambra)">
+      <div style="font-size:26px;font-weight:800;color:var(--ambra)">${r.inAttesa}</div>
+      <div style="font-size:10px;color:var(--debole)">Richieste in attesa</div>
+    </div>
+  </div>
+
+  <!-- Riepilogo mensile -->
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--debole);margin-bottom:8px">Riepilogo mensile</div>
+  <div style="overflow-x:auto;margin-bottom:18px">
+  <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--grigio)">
+      <th style="padding:6px 8px;text-align:left">Mese</th>
+      <th style="padding:6px 8px;text-align:center;color:var(--verde)">Ferie</th>
+      <th style="padding:6px 8px;text-align:center;color:var(--azzurro)">Permessi</th>
+      <th style="padding:6px 8px;text-align:center;color:var(--teal)">SW</th>
+    </tr></thead><tbody>
+    ${r.perMese.map((m,i)=>`<tr style="border-bottom:1px solid var(--bordo)${i%2?';background:var(--grigio)':''}">
+      <td style="padding:5px 8px;font-weight:600">${MESI[i]}</td>
+      <td style="text-align:center;color:var(--verde);font-weight:${m.nF?'700':'400'}">${m.nF||'—'}</td>
+      <td style="text-align:center;color:var(--azzurro);font-weight:${m.nP?'700':'400'}">${m.nP?m.nP+'h':'—'}</td>
+      <td style="text-align:center;color:var(--teal);font-weight:${m.nS?'700':'400'}">${m.nS||'—'}</td>
+    </tr>`).join('')}
+    </tbody>
+  </table></div>
+
+  <!-- Periodi ferie -->
+  ${periodi.length?`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--debole);margin-bottom:8px">Periodi ferie</div>
+  <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:18px">
+  ${periodi.map((p,i)=>{
+    const gg=ferieSort.filter(g=>g>=p.da&&g<=p.a).length;
+    const da=isoToDate(p.da),a=isoToDate(p.a);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--grigio);border-radius:8px;border-left:3px solid var(--verde);font-size:12px">
+      <span><b>${i+1}.</b> ${fmt(p.da)}${p.da!==p.a?' → '+fmt(p.a):''}</span>
+      <span style="color:var(--verde);font-weight:700">${gg}gg</span>
+    </div>`;
+  }).join('')}</div>`:''}
+
+  <!-- Permessi -->
+  ${Object.keys(permessi).length?`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--debole);margin-bottom:8px">Permessi</div>
+  <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:18px">
+  ${Object.entries(permessi).filter(([g])=>g.startsWith(String(anno))).sort().map(([iso,p])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--grigio);border-radius:8px;border-left:3px solid var(--azzurro);font-size:12px">
+      <span>${fmt(iso)}${p.note?` — <i style="color:var(--debole)">${p.note}</i>`:''}</span>
+      <span style="color:var(--azzurro);font-weight:700">${p.ore||0}h</span>
+    </div>`).join('')}
+  <div style="text-align:right;font-size:12px;font-weight:700;color:var(--azzurro);padding-top:4px">Totale: ${totOreP}h</div>
+  </div>`:''}
+
+  <!-- Smartworking -->
+  ${giorniSW.length?`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--debole);margin-bottom:8px">Smartworking</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px">
+  ${giorniSW.map(iso=>`<div style="padding:4px 10px;background:var(--teal-light);border:1px solid var(--teal);border-radius:6px;font-size:11px;color:var(--teal);font-weight:600">
+    ${isoToDate(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})}
+  </div>`).join('')}
+  <div style="width:100%;text-align:right;font-size:12px;font-weight:700;color:var(--teal);padding-top:2px">Totale: ${giorniSW.length} giorni</div>
+  </div>`:''}`;
+
+  // Apri modale
+  let existing=document.getElementById('_overlayDashSingola');
+  if(existing)existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='_overlayDashSingola';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML=`<div style="background:var(--card);border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.35);width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="background:#7C3AED;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div style="flex:1">
+        <div style="color:#fff;font-weight:700;font-size:15px">📊 ${nomeRisorsa}</div>
+        <div style="color:rgba(255,255,255,.75);font-size:12px;margin-top:2px">${r.ruolo} — Anno ${anno}</div>
+      </div>
+      <button onclick="stampaDashboardSingola('${nomeRisorsa.replace(/'/g,"\\'")}',${anno})" 
+        style="background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;padding:6px 14px;cursor:pointer;font-size:13px;margin-right:4px">🖨 Stampa</button>
+      <button onclick="document.getElementById('_overlayDashSingola').remove()" 
+        style="background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;padding:6px 14px;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px">${bodyHtml}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function stampaDashboardSingola(nomeRisorsa, anno){
+  if(!dashDatiCorrente) return;
+  const {righe,fx}=dashDatiCorrente;
+  const r=righe.find(x=>x.nome===nomeRisorsa);
+  if(!r) return;
+
+  let ferie=new Set(), permessi={}, sw=new Set();
+  try{
+    const [ferieData,permData,swData]=await Promise.all([
+      ghGetFile(PATH_FERIE).catch(()=>({})),
+      ghGetFile(PATH_PERMESSI).catch(()=>({})),
+      ghGetFile(PATH_SW).catch(()=>({}))
+    ]);
+    ferie=new Set((ferieData[nomeRisorsa]?.[String(anno)])||[]);
+    permessi=(permData[nomeRisorsa]?.[String(anno)])||{};
+    sw=new Set((swData[nomeRisorsa]?.[String(anno)])||[]);
+  }catch(e){toast('Errore: '+e.message,'rosso');return;}
+
+  const ferieSort=[...ferie].filter(g=>!fx[g]&&(()=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;})()).sort();
+  const periodi=[];let curr=null;
+  for(const g of ferieSort){
+    if(!curr){curr={da:g,a:g};}
+    else{const diff=(isoToDate(g)-isoToDate(curr.a))/(1000*60*60*24);
+      if(diff<=3)curr.a=g;else{periodi.push(curr);curr={da:g,a:g};}}
+  }
+  if(curr)periodi.push(curr);
+  const fmt=iso=>isoToDate(iso).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  const totOreP=Object.values(permessi).reduce((t,v)=>t+(v?.ore||0),0);
+  const giorniSW=[...sw].sort();
+  const budF=r.bud?.FerieDisponibili||null;
+  const budP=r.bud?.OrePermessiDisponibili||null;
+
+  let html=`<style>*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    body{font-family:Arial,sans-serif;font-size:10px;color:#1E293B;margin:20px}
+    h1{font-size:16px;color:#7C3AED;margin:0 0 2px}h2{font-size:11px;color:#7C3AED;margin:12px 0 4px;border-bottom:1px solid #E9D5FF;padding-bottom:2px}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9px}
+    th,td{border:1px solid #E2E8F0;padding:4px 7px}th{background:#F5F3FF!important;font-weight:700;color:#7C3AED}
+    tr:nth-child(even)td{background:#FAFAFA!important}.kpi{display:inline-block;background:#F5F3FF!important;border:1px solid #E9D5FF;border-radius:6px;padding:6px 14px;margin:0 6px 6px 0;text-align:center}
+    .kpi .n{font-size:20px;font-weight:800}.kpi .l{font-size:9px;color:#64748B}
+    @media print{@page{margin:10mm}}</style>
+    <h1>📊 Dashboard — ${nomeRisorsa}</h1>
+    <p style="color:#64748B;font-size:10px;margin-bottom:8px">${r.ruolo} — Anno ${anno} — Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
+    <div style="margin-bottom:12px">
+      <span class="kpi"><span class="n" style="color:#15803D">${r.nFerie}${budF!=null?'/'+budF:''}</span><br><span class="l">Giorni ferie</span></span>
+      <span class="kpi"><span class="n" style="color:#1D4ED8">${r.nOreP}h${budP!=null?'/'+budP+'h':''}</span><br><span class="l">Ore permessi</span></span>
+      <span class="kpi"><span class="n" style="color:#EA580C">${r.nSW}</span><br><span class="l">Giorni SW</span></span>
+      <span class="kpi"><span class="n" style="color:#D97706">${r.inAttesa}</span><br><span class="l">In attesa</span></span>
+    </div>
+    <h2>Riepilogo mensile</h2>
+    <table><tr><th>Mese</th><th style="color:#15803D">Ferie</th><th style="color:#1D4ED8">Permessi</th><th style="color:#EA580C">SW</th></tr>
+    ${r.perMese.map((m,i)=>`<tr><td><b>${MESI[i]}</b></td>
+      <td style="text-align:center;${m.nF?'color:#15803D;font-weight:700':''}">${m.nF||'—'}</td>
+      <td style="text-align:center;${m.nP?'color:#1D4ED8;font-weight:700':''}">${m.nP?m.nP+'h':'—'}</td>
+      <td style="text-align:center;${m.nS?'color:#EA580C;font-weight:700':''}">${m.nS||'—'}</td>
+    </tr>`).join('')}
+    <tr style="background:#F5F3FF!important"><td><b>Totale</b></td>
+      <td style="text-align:center;font-weight:700;color:#15803D">${r.nFerie}</td>
+      <td style="text-align:center;font-weight:700;color:#1D4ED8">${totOreP}h</td>
+      <td style="text-align:center;font-weight:700;color:#EA580C">${giorniSW.length}</td>
+    </tr></table>
+    ${periodi.length?`<h2>Periodi ferie</h2><table><tr><th>#</th><th>Dal</th><th>Al</th><th>Giorni</th></tr>
+    ${periodi.map((p,i)=>{const gg=ferieSort.filter(g=>g>=p.da&&g<=p.a).length;
+      return `<tr><td style="text-align:center;color:#15803D;font-weight:700">${i+1}</td>
+        <td>${fmt(p.da)}</td><td>${p.da!==p.a?fmt(p.a):fmt(p.da)}</td>
+        <td style="text-align:center;color:#15803D;font-weight:700">${gg}</td></tr>`;
+    }).join('')}</table>`:''}
+    ${Object.keys(permessi).length?`<h2>Permessi</h2><table><tr><th>#</th><th>Giorno</th><th>Ore</th><th>Note</th></tr>
+    ${Object.entries(permessi).filter(([g])=>g.startsWith(String(anno))).sort().map(([iso,p],i)=>
+      `<tr><td style="text-align:center;color:#1D4ED8;font-weight:700">${i+1}</td>
+        <td>${fmt(iso)}</td><td style="text-align:center;color:#1D4ED8;font-weight:700">${p.ore||0}h</td>
+        <td style="color:#64748B;font-style:italic">${p.note||'—'}</td></tr>`
+    ).join('')}
+    <tr style="background:#EFF6FF!important"><td colspan="2"><b>Totale</b></td>
+      <td style="text-align:center;font-weight:700;color:#1D4ED8">${totOreP}h</td><td></td></tr></table>`:''}
+    ${giorniSW.length?`<h2>Smartworking</h2><table><tr><th>#</th><th>Giorno</th></tr>
+    ${giorniSW.map((iso,i)=>`<tr><td style="text-align:center;color:#EA580C;font-weight:700">${i+1}</td>
+      <td>${fmt(iso)}</td></tr>`).join('')}
+    <tr style="background:#FFF7ED!important"><td><b>Totale</b></td>
+      <td style="font-weight:700;color:#EA580C">${giorniSW.length} giorni</td></tr></table>`:''}`;
+
+  apriStampa(html);
 }
 
 async function stampaDashboard(){
@@ -3384,13 +3666,14 @@ function vrDisegnaCal(nome,anno,ferie,permessi,sw,fx,oggi){
 function stampaPDFRisorsa(){
   if(!vrDatiCorrente){toast('Nessuna risorsa caricata','rosso');return;}
   const {nome,anno,ferie,permessi,sw,fx,budget}=vrDatiCorrente;
-  // Riutilizza la logica di stampaPDF ma con i dati della risorsa selezionata
+
   const ferieAnno=[...ferie].filter(g=>g.startsWith(anno)).sort();
   const swAnno=[...sw].filter(g=>g.startsWith(anno)).sort();
   const totFerie=ferieAnno.filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6&&!fx[g];}).length;
   const totSW=swAnno.filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6&&!fx[g];}).length;
   const totOreP=Object.values(permessi).reduce((t,v)=>t+(v?.ore||0),0);
 
+  // Raggruppa ferie in periodi (solo ferie, non permessi/SW)
   function raggruppa(giorni){
     if(!giorni.length)return[];
     const p=[];let i=giorni[0],f=giorni[0];
@@ -3400,106 +3683,177 @@ function stampaPDFRisorsa(){
     }
     p.push({da:i,a:f});return p;
   }
-  const fmt=iso=>isoToDate(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-  const fmtC=iso=>isoToDate(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+  const fmt=iso=>isoToDate(iso).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Stessa struttura HTML del PDF personale ma con dati risorsa
-  let html=`<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1E293B;margin:20px}
-    h1{font-size:16pt;color:#2563EB;margin-bottom:4px}h2{font-size:12pt;color:#2563EB;margin:16px 0 6px;border-bottom:2px solid #EFF6FF;padding-bottom:4px}
-    table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #CBD5E1;padding:5px 8px;font-size:9pt}
-    th{background:#EFF6FF;font-weight:700;color:#2563EB}.mese-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-bottom:10px}
-    .g{text-align:center;padding:3px;border-radius:3px;font-size:8pt}.ferie-g{background:#15803D;color:#fff;font-weight:700}
-    .perm-g{background:#1D4ED8;color:#fff;font-weight:700}.sw-g{background:#EA580C;color:#fff;font-weight:700}
-    .fest-g{background:#FEF2F2;color:#EF4444;font-weight:700}.wkd-g{background:#F0F9FF;color:#64748B}
-    .today-g{background:#D97706;color:#fff;font-weight:700}.hdr-g{font-weight:700;color:#2563EB;font-size:7pt;text-align:center}
-    .summary-box{display:inline-block;padding:8px 16px;border-radius:8px;margin-right:10px;margin-bottom:8px;font-size:10pt}
-    @media print{@page{size:A4;margin:1.5cm}}</style>
-    <h1>📅 ${nome}</h1>
-    <div style="color:#64748B;margin-bottom:12px">Anno ${anno}${budget?` · Budget: ${budget.FerieDisponibili}gg ferie · ${budget.OrePermessiDisponibili}h permessi`:''}</div>
-    <div style="margin-bottom:16px">
-      <span class="summary-box" style="background:#F0FDF4;border:1px solid #BBF7D0"><b style="color:#15803D">${totFerie}</b> giorni ferie${budget?.FerieDisponibili?' / '+budget.FerieDisponibili+'gg':''}</span>
-      <span class="summary-box" style="background:#EFF6FF;border:1px solid #FED7AA"><b style="color:#1D4ED8">${totOreP}h</b> permessi${budget?.OrePermessiDisponibili?' / '+budget.OrePermessiDisponibili+'h':''}</span>
-      <span class="summary-box" style="background:#FFF7ED;border:1px solid #FED7AA"><b style="color:#EA580C">${totSW}</b> giorni smartworking</span>
-    </div>`;
-
-  // Calendario 12 mesi
   const oggi=isoDate(new Date());
+
+  let html=`<style>
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+    body{font-family:Arial,sans-serif;font-size:10px;color:#1E293B;margin:15px}
+    h1{font-size:17px;color:#2563EB;margin:0 0 4px}
+    h2{font-size:11px;color:#2563EB;margin:14px 0 4px;border-bottom:1px solid #CBD5E1;padding-bottom:2px}
+    /* Griglia mesi */
+    .grid12{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .mese-box{border:1px solid #CBD5E1;border-radius:6px;overflow:hidden;break-inside:avoid}
+    .mese-hdr{background:#EFF6FF!important;padding:4px 7px;font-weight:700;font-size:9px;border-left:3px solid #2563EB}
+    .mgrid{display:grid;grid-template-columns:repeat(8,1fr);padding:3px;gap:1px}
+    .gh{text-align:center;font-size:7.5px;font-weight:700;color:#2563EB;padding:1px 0}
+    .gh.wk{color:#EF4444}.gh.nw{color:#94A3B8;font-size:6.5px}
+    /* Celle giorno — stessi colori dell'app */
+    .gd{text-align:center;font-size:7.5px;padding:2px 1px;border-radius:3px;line-height:1.2;min-height:14px}
+    .gd.ferie    {background:#15803D!important;color:#fff!important;font-weight:700}
+    .gd.permesso {background:#1D4ED8!important;color:#fff!important;font-weight:700}
+    .gd.sw       {background:#EA580C!important;color:#fff!important;font-weight:700}
+    .gd.ferie-sw {background:linear-gradient(135deg,#15803D 50%,#EA580C 50%)!important;color:#fff!important;font-weight:700}
+    .gd.ferie-permesso{background:linear-gradient(135deg,#15803D 50%,#1D4ED8 50%)!important;color:#fff!important;font-weight:700}
+    .gd.permesso-sw{background:linear-gradient(135deg,#1D4ED8 50%,#EA580C 50%)!important;color:#fff!important;font-weight:700}
+    .gd.attesa   {background:#D97706!important;color:#fff!important;font-weight:700}
+    .gd.rifiutata{background:#EF4444!important;color:#fff!important;text-decoration:line-through}
+    .gd.fest     {background:#FEF2F2!important;color:#EF4444!important;font-weight:700}
+    .gd.wkd      {background:#F0F9FF!important;color:#64748B!important}
+    .gd.oggi     {outline:2px solid #7C3AED;outline-offset:-2px;font-weight:700}
+    .gd .lbl     {display:block;font-size:5px;line-height:1;margin-top:1px;opacity:.9}
+    .nw          {text-align:center;font-size:6.5px;color:#94A3B8}
+    /* Tabelle dettaglio */
+    .tab{border-collapse:collapse;width:100%;margin-top:6px;font-size:9px}
+    .tab th{background:#2563EB!important;color:#fff!important;padding:4px 8px;text-align:left}
+    .tab td{padding:4px 8px;border-bottom:1px solid #F1F5F9;vertical-align:top}
+    .tab tr:nth-child(even) td{background:#F8FAFC!important}
+    .stat{display:inline-block;background:#EFF6FF!important;border:1px solid #BFDBFE;border-radius:6px;padding:5px 12px;margin-right:8px;margin-bottom:6px;text-align:center}
+    .stat .n{font-size:20px;font-weight:700}.stat .l{font-size:8px;color:#64748B}
+    @media print{@page{margin:8mm}body{margin:0}}
+  </style>
+  <h1>📅 ${nome}</h1>
+  <p style="color:#64748B;font-size:10px;margin-bottom:10px">Anno ${anno}${budget?` · Budget: ${budget.FerieDisponibili||'?'}gg ferie · ${budget.OrePermessiDisponibili||'?'}h permessi`:''} · Stampato il ${new Date().toLocaleDateString('it-IT')}</p>
+  <div style="margin-bottom:14px">
+    <div class="stat"><div class="n" style="color:#15803D">${totFerie}</div><div class="l">Giorni ferie${budget?.FerieDisponibili?' / '+budget.FerieDisponibili+'gg':''}</div></div>
+    <div class="stat"><div class="n" style="color:#1D4ED8">${totOreP}h</div><div class="l">Ore permessi${budget?.OrePermessiDisponibili?' / '+budget.OrePermessiDisponibili+'h':''}</div></div>
+    <div class="stat"><div class="n" style="color:#EA580C">${totSW}</div><div class="l">Giorni smartworking</div></div>
+  </div>
+  <h2>Calendario ${anno}</h2>
+  <div class="grid12">`;
+
+  // Griglia 12 mesi con colori completi identici all'app
   for(let mese=1;mese<=12;mese++){
     const totalG=new Date(anno,mese,0).getDate();
-    const primo=new Date(anno,mese-1,1);let dowI=(primo.getDay()+6)%7;
+    const primo=new Date(anno,mese-1,1);
+    const dow=(primo.getDay()+6)%7;
     const nomiFest=[];
     for(let g=1;g<=totalG;g++){const iso=isoDate(new Date(anno,mese-1,g));if(fx[iso])nomiFest.push(`${g} ${fx[iso]}`);}
-    html+=`<h2>${MESI[mese-1].toUpperCase()}${nomiFest.length?' <span style="font-size:9pt;color:#EF4444">'+nomiFest.join(', ')+'</span>':''}</h2>
-    <div class="mese-grid">
-      <div class="hdr-g" style="color:#94A3B8">W</div>${GIORNI.map((g,i)=>`<div class="hdr-g${i>=5?' wkd-g':''}">${g}</div>`).join('')}`;
-    let righe2=[];let r2={offset:dowI,celle:[]};
+
+    html+=`<div class="mese-box"><div class="mese-hdr">${MESI[mese-1].toUpperCase()}${nomiFest.length?`<span style="font-weight:400;color:#EF4444;margin-left:5px;font-size:7.5px">${nomiFest.join(' · ')}</span>`:''}</div>
+    <div class="mgrid">
+      <div class="gh nw">W</div>${GIORNI.map((g,i)=>`<div class="gh${i>=5?' wk':''}">${g}</div>`).join('')}`;
+
+    const righe=[];let riga={nw:getISOWeek(primo),offset:dow,celle:[]};
     for(let g=1;g<=totalG;g++){
       const d=new Date(anno,mese-1,g),iso=isoDate(d),dw=(d.getDay()+6)%7;
-      if(dw===0&&g>1){righe2.push(r2);r2={offset:0,celle:[],nw:getISOWeek(d)};}
-      let cls='g';
-      if(fx[iso])cls+=' fest-g';
-      else if(d.getDay()===0||d.getDay()===6)cls+=' wkd-g';
-      if(iso===oggi)cls+=' today-g';
-      else if(ferie.has(iso))cls+=' ferie-g';
-      else if(permessi[iso])cls+=' perm-g';
-      else if(sw.has(iso))cls+=' sw-g';
-      const label=permessi[iso]?`${g}<br><span style="font-size:6pt">${permessi[iso].ore}h</span>`:sw.has(iso)?`${g}<br><span style="font-size:6pt">SW</span>`:g;
-      r2.celle.push(`<div class="${cls}">${label}</div>`);
+      if(dw===0&&g>1){righe.push(riga);riga={nw:getISOWeek(d),offset:0,celle:[]};}
+
+      const haF=ferie.has(iso),haP=!!permessi[iso],haS=sw.has(iso);
+      let cls='gd';
+      if(fx[iso])              cls+=' fest';
+      else if(d.getDay()===0||d.getDay()===6) cls+=' wkd';
+      else if(haF&&haP&&haS)   cls+=' ferie-permesso'; // triplice: usa ferie-permesso come base
+      else if(haF&&haS)        cls+=' ferie-sw';
+      else if(haP&&haS)        cls+=' permesso-sw';
+      else if(haF&&haP)        cls+=' ferie-permesso';
+      else if(haF)             cls+=' ferie';
+      else if(haP)             cls+=' permesso';
+      else if(haS)             cls+=' sw';
+      if(iso===oggi)           cls+=' oggi';
+
+      let inner=String(g);
+      if(haP) inner+=`<span class="lbl">${permessi[iso].ore}h${haS?'+SW':''}</span>`;
+      else if(haS) inner+=`<span class="lbl">SW</span>`;
+
+      riga.celle.push(`<div class="${cls}">${inner}</div>`);
     }
-    righe2.push(r2);
-    righe2.forEach(r=>{
-      html+=`<div class="g" style="background:var(--debole,#94A3B8);color:#fff;font-size:7pt">${r.nw||getISOWeek(new Date(anno,mese-1,1))}</div>`;
-      for(let p=0;p<(r.offset||0);p++)html+=`<div class="g"></div>`;
+    righe.push(riga);
+    righe.forEach(r=>{
+      html+=`<div class="nw">${r.nw}</div>`;
+      for(let p=0;p<(r.offset||0);p++) html+=`<div class="gd"></div>`;
       html+=r.celle.join('');
       const tot=(r.offset||0)+r.celle.length;
-      for(let p=tot;p<7;p++)html+=`<div class="g"></div>`;
+      for(let p=tot;p<7;p++) html+=`<div class="gd"></div>`;
     });
-    html+='</div>';
+    html+='</div></div>';
   }
+  html+='</div>'; // fine grid12
 
-  // Tabella ferie
+  // Dettaglio periodi ferie (Dal → Al)
   const periF=raggruppa(ferieAnno);
   if(periF.length){
-    html+=`<h2>Ferie — dettaglio periodi</h2><table><tr><th>Dal</th><th>Al</th><th>Giorni lav.</th></tr>`;
-    periF.forEach(p=>{
+    html+=`<h2>Ferie — dettaglio periodi</h2>
+    <table class="tab"><tr><th>#</th><th>Dal</th><th>Al</th><th>Giorni lav.</th></tr>`;
+    periF.forEach((p,i)=>{
       const gg=[...ferie].filter(g=>g>=p.da&&g<=p.a&&!fx[g]).filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;}).length;
-      html+=`<tr><td>${fmt(p.da)}</td><td>${fmt(p.a)}</td><td style="text-align:center">${gg}</td></tr>`;
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#15803D">${i+1}</td>
+        <td>${isoToDate(p.da).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</td>
+        <td>${isoToDate(p.a).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</td>
+        <td style="text-align:center;font-weight:700;color:#15803D">${gg}</td>
+      </tr>`;
     });
-    html+='</table>';
+    html+=`<tr style="background:#F0FDF4!important"><td colspan="3"><b>Totale giorni ferie</b></td>
+      <td style="text-align:center;font-weight:700;color:#15803D">${totFerie}</td></tr></table>`;
   }
 
-  // Tabella permessi
+  // Dettaglio permessi — UN GIORNO PER RIGA con data + ore
   const giorniP=Object.keys(permessi).filter(g=>g.startsWith(anno)).sort();
   if(giorniP.length){
-    html+=`<h2>Permessi retribuiti — dettaglio</h2><table><tr><th>Data</th><th>Ore</th><th>Note</th></tr>`;
-    giorniP.forEach(g=>{const p=permessi[g];html+=`<tr><td>${fmt(g)}</td><td style="text-align:center">${p.ore}h</td><td style="color:#64748B">${p.note||'—'}</td></tr>`;});
-    html+=`<tr style="background:#EFF6FF"><td colspan="2"><b>Totale ore permessi</b></td><td><b>${totOreP}h</b></td></tr></table>`;
+    html+=`<h2>Permessi — dettaglio</h2>
+    <table class="tab"><tr><th>#</th><th>Giorno</th><th>Ore</th><th>Note</th></tr>`;
+    giorniP.forEach((iso,i)=>{
+      const p=permessi[iso];
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#1D4ED8">${i+1}</td>
+        <td>${fmt(iso)}</td>
+        <td style="text-align:center;font-weight:700;color:#1D4ED8">${p?.ore||0}h</td>
+        <td style="color:#64748B;font-style:italic">${p?.note||'—'}</td>
+      </tr>`;
+    });
+    html+=`<tr style="background:#EFF6FF!important"><td colspan="2"><b>Totale ore permessi</b></td>
+      <td style="text-align:center;font-weight:700;color:#1D4ED8">${totOreP}h</td><td></td></tr></table>`;
   }
 
-  // Tabella SW
-  const periSW=raggruppa(swAnno);
-  if(periSW.length){
-    html+=`<h2>Smartworking — dettaglio periodi</h2><table><tr><th>Dal</th><th>Al</th><th>Giorni</th></tr>`;
-    periSW.forEach(p=>{
-      const gg=[...sw].filter(g=>g>=p.da&&g<=p.a&&!fx[g]).filter(g=>{const d=isoToDate(g);return d.getDay()>0&&d.getDay()<6;}).length;
-      html+=`<tr><td>${fmt(p.da)}</td><td>${fmt(p.a)}</td><td style="text-align:center">${gg}</td></tr>`;
+  // Dettaglio SW — UN GIORNO PER RIGA
+  if(swAnno.length){
+    html+=`<h2>Smartworking — dettaglio</h2>
+    <table class="tab"><tr><th>#</th><th>Giorno</th></tr>`;
+    swAnno.forEach((iso,i)=>{
+      html+=`<tr>
+        <td style="text-align:center;font-weight:700;color:#EA580C">${i+1}</td>
+        <td>${fmt(iso)}</td>
+      </tr>`;
     });
-    html+='</table>';
+    html+=`<tr style="background:#FFF7ED!important"><td><b>Totale</b></td>
+      <td style="font-weight:700;color:#EA580C">${totSW} giorni</td></tr></table>`;
   }
 
   // Riepilogo mensile
-  html+=`<h2>Riepilogo mensile</h2><table><tr><th>Mese</th><th>Ferie</th><th>Permessi (h)</th><th>Smartworking</th></tr>`;
+  html+=`<h2>Riepilogo mensile</h2>
+  <table class="tab"><tr><th>Mese</th><th style="color:#15803D">Ferie</th><th style="color:#1D4ED8">Permessi (h)</th><th style="color:#EA580C">Smartworking</th></tr>`;
   for(let m=1;m<=12;m++){
     const totalG=new Date(anno,m,0).getDate();
     let nF=0,nOre=0,nSW=0;
     for(let g=1;g<=totalG;g++){
       const iso=isoDate(new Date(anno,m-1,g));
-      const d=new Date(anno,m-1,g);if(d.getDay()===0||d.getDay()===6||fx[iso])continue;
-      if(ferie.has(iso))nF++;if(permessi[iso])nOre+=permessi[iso].ore||0;if(sw.has(iso))nSW++;
+      const d=new Date(anno,m-1,g);
+      if(d.getDay()===0||d.getDay()===6||fx[iso])continue;
+      if(ferie.has(iso))nF++;
+      if(permessi[iso])nOre+=permessi[iso].ore||0;
+      if(sw.has(iso))nSW++;
     }
-    if(nF||nOre||nSW) html+=`<tr><td><b>${MESI[m-1]}</b></td><td style="text-align:center">${nF||'—'}</td><td style="text-align:center">${nOre||'—'}</td><td style="text-align:center">${nSW||'—'}</td></tr>`;
+    if(nF||nOre||nSW) html+=`<tr>
+      <td><b>${MESI[m-1]}</b></td>
+      <td style="text-align:center;${nF?'color:#15803D;font-weight:700':''}">${nF||'—'}</td>
+      <td style="text-align:center;${nOre?'color:#1D4ED8;font-weight:700':''}">${nOre?nOre+'h':'—'}</td>
+      <td style="text-align:center;${nSW?'color:#EA580C;font-weight:700':''}">${nSW||'—'}</td>
+    </tr>`;
   }
   html+='</table>';
+
   apriStampa(html);
 }
 
@@ -4066,6 +4420,106 @@ async function confermaCambioPwd(){
     chiudiModal('overlayCambioPwd');toast('Password aggiornata!','verde');primAccesso=false;
   }catch(e){msg.textContent='Errore: '+e.message;}
 }
+/* ═══════════════════════════════════════════════════════════════════
+   PULIZIA DATI TEAM (solo caporeparto)
+═══════════════════════════════════════════════════════════════════ */
+function apriPuliziaTeam(){
+  // Popola anno corrente
+  document.getElementById('puliziaAnno').value=new Date().getFullYear();
+  document.getElementById('puliziaMsg').textContent='';
+  // Checkbox tipi: tutte selezionate tranne richieste
+  document.getElementById('puliziaFerie').checked=true;
+  document.getElementById('puliziaPermessi').checked=true;
+  document.getElementById('puliziaSW').checked=true;
+  document.getElementById('puliziaRichieste').checked=false;
+
+  // Lista risorse del reparto
+  const lista=document.getElementById('puliziaListaRisorse');
+  lista.innerHTML='';
+  const membri=teamData.filter(m=>m.Caporeparto===utenteCorrente.Title&&m.Title!==utenteCorrente.Title)
+    .sort((a,b)=>a.Title.localeCompare(b.Title));
+  if(!membri.length){
+    lista.innerHTML='<p style="color:var(--debole);font-size:12px;padding:8px">Nessuna risorsa nel reparto.</p>';
+  } else {
+    membri.forEach(m=>{
+      const row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;transition:background .1s';
+      row.onmouseenter=()=>row.style.background='var(--grigio)';
+      row.onmouseleave=()=>row.style.background='';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
+      cb.dataset.title=m.Title;cb.className='pulizia-cb';
+      cb.style.cssText='width:16px;height:16px;cursor:pointer;flex-shrink:0';
+      const span=document.createElement('span');
+      span.innerHTML=`<b>${cognomeNome(m.Title)}</b> <span style="color:var(--debole);font-size:11px">${m.Ruolo}</span>`;
+      row.appendChild(cb);row.appendChild(span);
+      lista.appendChild(row);
+    });
+  }
+  apriModal('overlayPuliziaTeam');
+}
+
+function puliziaSelTutti(val){
+  document.querySelectorAll('.pulizia-cb').forEach(cb=>cb.checked=val);
+}
+
+async function confermaPuliziaTeam(){
+  const msg=document.getElementById('puliziaMsg');
+  msg.textContent='';
+  const anno=String(document.getElementById('puliziaAnno').value);
+  if(!anno||isNaN(parseInt(anno))){msg.textContent='Inserisci un anno valido.';return;}
+
+  const delFerie=document.getElementById('puliziaFerie').checked;
+  const delPermessi=document.getElementById('puliziaPermessi').checked;
+  const delSW=document.getElementById('puliziaSW').checked;
+  const delRichieste=document.getElementById('puliziaRichieste').checked;
+
+  const selezionate=[...document.querySelectorAll('.pulizia-cb:checked')].map(cb=>cb.dataset.title);
+  if(!selezionate.length){msg.textContent='Seleziona almeno una risorsa.';return;}
+  if(!delFerie&&!delPermessi&&!delSW&&!delRichieste){msg.textContent='Seleziona almeno un tipo di dato.';return;}
+
+  const tipi=[];
+  if(delFerie)tipi.push('Ferie');if(delPermessi)tipi.push('Permessi');
+  if(delSW)tipi.push('Smartworking');if(delRichieste)tipi.push('Richieste');
+
+  const elenco=selezionate.map(t=>cognomeNome(t)).join(', ');
+  if(!confirm(`Eliminare ${tipi.join(', ')} ${anno} per:\n${elenco}\n\nOperazione IRREVERSIBILE. Continuare?`))return;
+
+  msg.textContent='Eliminazione in corso…';
+  try{
+    let ok=0;
+    // Ferie
+    if(delFerie){
+      const data=(await ghGetFile(PATH_FERIE))||{};
+      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
+      await ghSaveFile(PATH_FERIE,data,`Pulizia ferie ${anno} - ${utenteCorrente.Title}`);ok++;
+    }
+    // Permessi
+    if(delPermessi){
+      const data=(await ghGetFile(PATH_PERMESSI))||{};
+      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
+      await ghSaveFile(PATH_PERMESSI,data,`Pulizia permessi ${anno} - ${utenteCorrente.Title}`);ok++;
+    }
+    // Smartworking
+    if(delSW){
+      const data=(await ghGetFile(PATH_SW))||{};
+      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
+      await ghSaveFile(PATH_SW,data,`Pulizia SW ${anno} - ${utenteCorrente.Title}`);ok++;
+    }
+    // Richieste
+    if(delRichieste){
+      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+      const filtrate=reqs.filter(r=>!(selezionate.includes(r.Dipendente)&&String(r.Anno)===anno));
+      await ghSaveFile(PATH_RICHIESTE,filtrate,`Pulizia richieste ${anno} - ${utenteCorrente.Title}`);ok++;
+    }
+    chiudiModal('overlayPuliziaTeam');
+    toast(`✓ Dati eliminati per ${selezionate.length} risorsa/e (${tipi.join(', ')} ${anno})`,'verde');
+    // Ricarica vista corrente
+    await disegnaCal();aggiornaStatobar();aggiornaSidebar();
+  }catch(e){
+    msg.textContent='Errore: '+e.message;
+  }
+}
+
 async function apriResetPwd(){
   const list=document.getElementById('resetPwdList');list.innerHTML='';
   const miei=utenteCorrente.Ruolo==='caporeparto'
