@@ -15,7 +15,7 @@
     "Approvatore": "EMILIANO RONZAT",
     "DataRisposta": "2026-03-14T22:15:19.758Z",
     "MotivazioneRifiuto": "",
-    "Letta": false
+    "Letta": true
   },
   {
     "id": 1773526496760,
@@ -33,6 +33,6 @@
     "Approvatore": "EMILIANO RONZAT",
     "DataRisposta": "2026-03-14T22:15:24.905Z",
     "MotivazioneRifiuto": "",
-    "Letta": false
+    "Letta": true
   }
 ]
