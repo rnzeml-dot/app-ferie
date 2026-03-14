@@ -647,51 +647,89 @@
 
 <!-- Pulizia dati team (solo caporeparto) -->
 <div class="overlay" id="overlayPuliziaTeam">
-  <div class="modal" style="max-width:520px;width:97%">
+  <div class="modal" style="max-width:560px;width:97%">
     <div class="modal-hdr" style="background:var(--rosso)">
       <h2>🗑 Pulizia dati team</h2>
-      <p>Seleziona le risorse e i tipi di dato da eliminare definitivamente</p>
+      <p>Azzera i dati per ripartire da zero o pulisci un anno specifico</p>
     </div>
     <div class="modal-body">
-      <div class="field">
-        <label>Anno</label>
-        <input type="number" id="puliziaAnno" min="2024" max="2040" style="width:90px"/>
+
+      <!-- Tabs modalità -->
+      <div style="display:flex;border:1px solid var(--bordo);border-radius:8px;overflow:hidden;margin-bottom:16px">
+        <button id="tabReset" onclick="puliziaSwitchTab('reset')"
+          style="flex:1;padding:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:var(--rosso);color:#fff">
+          🔴 Reset completo
+        </button>
+        <button id="tabAnno" onclick="puliziaSwitchTab('anno')"
+          style="flex:1;padding:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:var(--grigio);color:var(--testo)">
+          📅 Pulizia per anno
+        </button>
       </div>
-      <div class="field">
-        <label>Tipo dato da eliminare</label>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-            <input type="checkbox" id="puliziaFerie" checked> <span style="color:var(--verde);font-weight:700">Ferie</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-            <input type="checkbox" id="puliziaPermessi" checked> <span style="color:var(--azzurro);font-weight:700">Permessi</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-            <input type="checkbox" id="puliziaSW" checked> <span style="color:var(--teal);font-weight:700">Smartworking</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-            <input type="checkbox" id="puliziaRichieste"> <span style="color:var(--ambra);font-weight:700">Richieste</span>
-          </label>
-        </div>
-      </div>
-      <div class="field">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <label>Risorse</label>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(true)">Tutte</button>
-            <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(false)">Nessuna</button>
+
+      <!-- Pannello Reset completo -->
+      <div id="panelReset">
+        <div style="background:#FEF2F2;border:2px solid var(--rosso);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;color:var(--rosso);margin-bottom:6px">⚠️ Reset completo — Giorno 0</div>
+          <div style="font-size:12px;color:var(--testo);line-height:1.6">
+            Elimina <b>tutti i dati di tutti gli anni</b> per le risorse selezionate:<br>
+            ferie, permessi, smartworking e richieste vengono azzerati completamente.<br>
+            L'app tornerà allo stato iniziale come se non fosse mai stata usata.
           </div>
         </div>
-        <div id="puliziaListaRisorse" style="max-height:200px;overflow-y:auto;border:1px solid var(--bordo);border-radius:8px;padding:4px"></div>
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label>Risorse da azzerare</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(true)">Tutte</button>
+              <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(false)">Nessuna</button>
+            </div>
+          </div>
+          <div id="puliziaListaRisorse" style="max-height:220px;overflow-y:auto;border:1px solid var(--bordo);border-radius:8px;padding:4px"></div>
+        </div>
       </div>
-      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:4px">
-        <b>⚠️ Attenzione:</b> questa operazione è irreversibile. I dati eliminati non potranno essere recuperati.
+
+      <!-- Pannello Anno specifico -->
+      <div id="panelAnno" style="display:none">
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px">
+          <div class="field" style="margin:0">
+            <label>Anno</label>
+            <input type="number" id="puliziaAnno" min="2020" max="2040" style="width:90px"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo dato da eliminare</label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="puliziaFerie" checked> <span style="color:var(--verde);font-weight:700">🌿 Ferie</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="puliziaPermessi" checked> <span style="color:var(--azzurro);font-weight:700">🕐 Permessi</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="puliziaSW" checked> <span style="color:var(--teal);font-weight:700">🏠 Smartworking</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="puliziaRichieste" checked> <span style="color:var(--ambra);font-weight:700">📋 Richieste</span>
+            </label>
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label>Risorse</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(true)">Tutte</button>
+              <button class="btn btn-grigio" style="font-size:11px;padding:2px 8px" onclick="puliziaSelTutti(false)">Nessuna</button>
+            </div>
+          </div>
+          <div id="puliziaListaRisorseAnno" style="max-height:180px;overflow-y:auto;border:1px solid var(--bordo);border-radius:8px;padding:4px"></div>
+        </div>
       </div>
+
       <div id="puliziaMsg" class="msg-err" style="margin-top:8px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-grigio" onclick="chiudiModal('overlayPuliziaTeam')">Annulla</button>
-      <button class="btn btn-rosso" onclick="confermaPuliziaTeam()">🗑 Elimina dati selezionati</button>
+      <button class="btn btn-rosso" id="btnConfermaPulizia" onclick="confermaPuliziaTeam()">🗑 Esegui reset completo</button>
     </div>
   </div>
 </div>
@@ -4479,38 +4517,58 @@ async function confermaCambioPwd(){
 /* ═══════════════════════════════════════════════════════════════════
    PULIZIA DATI TEAM (solo caporeparto)
 ═══════════════════════════════════════════════════════════════════ */
+let _puliziaTab='reset'; // 'reset' | 'anno'
+
+function puliziaSwitchTab(tab){
+  _puliziaTab=tab;
+  const isReset=tab==='reset';
+  document.getElementById('panelReset').style.display=isReset?'':'none';
+  document.getElementById('panelAnno').style.display=isReset?'none':'';
+  document.getElementById('tabReset').style.cssText=`flex:1;padding:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:${isReset?'var(--rosso)':'var(--grigio)'};color:${isReset?'#fff':'var(--testo)'}`;
+  document.getElementById('tabAnno').style.cssText=`flex:1;padding:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:${!isReset?'var(--rosso)':'var(--grigio)'};color:${!isReset?'#fff':'var(--testo)'}`;
+  document.getElementById('btnConfermaPulizia').textContent=isReset?'🗑 Esegui reset completo':'🗑 Elimina dati anno selezionato';
+  // Popola la lista risorse corretta
+  _puliziaPopola();
+}
+
+function _puliziaPopola(){
+  // Includi il caporeparto stesso + tutto il reparto
+  const membri=teamData.filter(m=>m.Caporeparto===utenteCorrente.Title)
+    .sort((a,b)=>a.Title.localeCompare(b.Title));
+
+  const listId=_puliziaTab==='reset'?'puliziaListaRisorse':'puliziaListaRisorseAnno';
+  const lista=document.getElementById(listId);
+  if(!lista)return;
+  lista.innerHTML='';
+  if(!membri.length){
+    lista.innerHTML='<p style="color:var(--debole);font-size:12px;padding:8px">Nessuna risorsa trovata.</p>';
+    return;
+  }
+  membri.forEach(m=>{
+    const isMe=m.Title===utenteCorrente.Title;
+    const row=document.createElement('label');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;transition:background .1s';
+    row.onmouseenter=()=>row.style.background='var(--grigio)';
+    row.onmouseleave=()=>row.style.background='';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
+    cb.dataset.title=m.Title;cb.className='pulizia-cb';
+    cb.style.cssText='width:16px;height:16px;cursor:pointer;flex-shrink:0';
+    const span=document.createElement('span');
+    span.innerHTML=`<b>${cognomeNome(m.Title)}</b> <span style="color:var(--debole);font-size:11px">${m.Ruolo}${isMe?' · tu':''}</span>`;
+    row.appendChild(cb);row.appendChild(span);
+    lista.appendChild(row);
+  });
+}
+
 function apriPuliziaTeam(){
-  // Popola anno corrente
+  _puliziaTab='reset';
   document.getElementById('puliziaAnno').value=new Date().getFullYear();
   document.getElementById('puliziaMsg').textContent='';
-  // Checkbox tipi: tutte selezionate tranne richieste
   document.getElementById('puliziaFerie').checked=true;
   document.getElementById('puliziaPermessi').checked=true;
   document.getElementById('puliziaSW').checked=true;
-  document.getElementById('puliziaRichieste').checked=false;
-
-  // Lista risorse del reparto
-  const lista=document.getElementById('puliziaListaRisorse');
-  lista.innerHTML='';
-  const membri=teamData.filter(m=>m.Caporeparto===utenteCorrente.Title&&m.Title!==utenteCorrente.Title)
-    .sort((a,b)=>a.Title.localeCompare(b.Title));
-  if(!membri.length){
-    lista.innerHTML='<p style="color:var(--debole);font-size:12px;padding:8px">Nessuna risorsa nel reparto.</p>';
-  } else {
-    membri.forEach(m=>{
-      const row=document.createElement('label');
-      row.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;border-radius:6px;font-size:13px;transition:background .1s';
-      row.onmouseenter=()=>row.style.background='var(--grigio)';
-      row.onmouseleave=()=>row.style.background='';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;
-      cb.dataset.title=m.Title;cb.className='pulizia-cb';
-      cb.style.cssText='width:16px;height:16px;cursor:pointer;flex-shrink:0';
-      const span=document.createElement('span');
-      span.innerHTML=`<b>${cognomeNome(m.Title)}</b> <span style="color:var(--debole);font-size:11px">${m.Ruolo}</span>`;
-      row.appendChild(cb);row.appendChild(span);
-      lista.appendChild(row);
-    });
-  }
+  document.getElementById('puliziaRichieste').checked=true;
+  puliziaSwitchTab('reset');
   apriModal('overlayPuliziaTeam');
 }
 
@@ -4521,58 +4579,109 @@ function puliziaSelTutti(val){
 async function confermaPuliziaTeam(){
   const msg=document.getElementById('puliziaMsg');
   msg.textContent='';
-  const anno=String(document.getElementById('puliziaAnno').value);
-  if(!anno||isNaN(parseInt(anno))){msg.textContent='Inserisci un anno valido.';return;}
 
-  const delFerie=document.getElementById('puliziaFerie').checked;
-  const delPermessi=document.getElementById('puliziaPermessi').checked;
-  const delSW=document.getElementById('puliziaSW').checked;
-  const delRichieste=document.getElementById('puliziaRichieste').checked;
-
-  const selezionate=[...document.querySelectorAll('.pulizia-cb:checked')].map(cb=>cb.dataset.title);
+  const listId=_puliziaTab==='reset'?'puliziaListaRisorse':'puliziaListaRisorseAnno';
+  const selezionate=[...document.querySelectorAll(`#${listId} .pulizia-cb:checked`)].map(cb=>cb.dataset.title);
   if(!selezionate.length){msg.textContent='Seleziona almeno una risorsa.';return;}
-  if(!delFerie&&!delPermessi&&!delSW&&!delRichieste){msg.textContent='Seleziona almeno un tipo di dato.';return;}
 
-  const tipi=[];
-  if(delFerie)tipi.push('Ferie');if(delPermessi)tipi.push('Permessi');
-  if(delSW)tipi.push('Smartworking');if(delRichieste)tipi.push('Richieste');
+  let descrizione, confText;
+  if(_puliziaTab==='reset'){
+    descrizione=`RESET COMPLETO (tutti gli anni) per:\n${selezionate.map(t=>cognomeNome(t)).join(', ')}`;
+    confText='⚠️ ATTENZIONE ⚠️\n\n'+descrizione+'\n\nTutti i dati (ferie, permessi, smartworking, richieste) saranno eliminati in modo IRREVERSIBILE.\n\nDigita RESET per confermare:';
+    const input=prompt(confText);
+    if(input?.trim().toUpperCase()!=='RESET'){msg.textContent='Reset annullato — digita RESET per confermare.';return;}
+  } else {
+    const anno=String(document.getElementById('puliziaAnno').value);
+    if(!anno||isNaN(parseInt(anno))){msg.textContent='Inserisci un anno valido.';return;}
+    const delF=document.getElementById('puliziaFerie').checked;
+    const delP=document.getElementById('puliziaPermessi').checked;
+    const delS=document.getElementById('puliziaSW').checked;
+    const delR=document.getElementById('puliziaRichieste').checked;
+    if(!delF&&!delP&&!delS&&!delR){msg.textContent='Seleziona almeno un tipo di dato.';return;}
+    const tipi=[delF&&'Ferie',delP&&'Permessi',delS&&'SW',delR&&'Richieste'].filter(Boolean);
+    descrizione=`${tipi.join(', ')} ${anno} per:\n${selezionate.map(t=>cognomeNome(t)).join(', ')}`;
+    if(!confirm(`Eliminare ${descrizione}?\n\nOperazione IRREVERSIBILE.`))return;
+  }
 
-  const elenco=selezionate.map(t=>cognomeNome(t)).join(', ');
-  if(!confirm(`Eliminare ${tipi.join(', ')} ${anno} per:\n${elenco}\n\nOperazione IRREVERSIBILE. Continuare?`))return;
+  msg.innerHTML='<span style="color:var(--ambra)">⏳ Eliminazione in corso… attendere</span>';
+  const btnConf=document.getElementById('btnConfermaPulizia');
+  btnConf.disabled=true;btnConf.style.opacity='.5';
 
-  msg.textContent='Eliminazione in corso…';
   try{
-    let ok=0;
-    // Ferie
-    if(delFerie){
-      const data=(await ghGetFile(PATH_FERIE))||{};
-      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
-      await ghSaveFile(PATH_FERIE,data,`Pulizia ferie ${anno} - ${utenteCorrente.Title}`);ok++;
+    if(_puliziaTab==='reset'){
+      // RESET COMPLETO: elimina tutte le chiavi per le risorse selezionate
+      await Promise.all([
+        (async()=>{
+          const data=(await ghGetFile(PATH_FERIE))||{};
+          selezionate.forEach(n=>delete data[n]);
+          await ghSaveFile(PATH_FERIE,data,`RESET ferie - ${utenteCorrente.Title}`);
+        })(),
+        (async()=>{
+          const data=(await ghGetFile(PATH_PERMESSI))||{};
+          selezionate.forEach(n=>delete data[n]);
+          await ghSaveFile(PATH_PERMESSI,data,`RESET permessi - ${utenteCorrente.Title}`);
+        })(),
+        (async()=>{
+          const data=(await ghGetFile(PATH_SW))||{};
+          selezionate.forEach(n=>delete data[n]);
+          await ghSaveFile(PATH_SW,data,`RESET SW - ${utenteCorrente.Title}`);
+        })(),
+        (async()=>{
+          const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+          const filtrate=reqs.filter(r=>!selezionate.includes(r.Dipendente));
+          await ghSaveFile(PATH_RICHIESTE,filtrate,`RESET richieste - ${utenteCorrente.Title}`);
+        })()
+      ]);
+    } else {
+      // PULIZIA PER ANNO
+      const anno=String(document.getElementById('puliziaAnno').value);
+      const delF=document.getElementById('puliziaFerie').checked;
+      const delP=document.getElementById('puliziaPermessi').checked;
+      const delS=document.getElementById('puliziaSW').checked;
+      const delR=document.getElementById('puliziaRichieste').checked;
+      await Promise.all([
+        delF&&(async()=>{
+          const d=(await ghGetFile(PATH_FERIE))||{};
+          selezionate.forEach(n=>{if(d[n])delete d[n][anno];});
+          await ghSaveFile(PATH_FERIE,d,`Pulizia ferie ${anno}`);
+        })(),
+        delP&&(async()=>{
+          const d=(await ghGetFile(PATH_PERMESSI))||{};
+          selezionate.forEach(n=>{if(d[n])delete d[n][anno];});
+          await ghSaveFile(PATH_PERMESSI,d,`Pulizia permessi ${anno}`);
+        })(),
+        delS&&(async()=>{
+          const d=(await ghGetFile(PATH_SW))||{};
+          selezionate.forEach(n=>{if(d[n])delete d[n][anno];});
+          await ghSaveFile(PATH_SW,d,`Pulizia SW ${anno}`);
+        })(),
+        delR&&(async()=>{
+          const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
+          const filtrate=reqs.filter(r=>!(selezionate.includes(r.Dipendente)&&String(r.Anno)===anno));
+          await ghSaveFile(PATH_RICHIESTE,filtrate,`Pulizia richieste ${anno}`);
+        })()
+      ].filter(Boolean));
     }
-    // Permessi
-    if(delPermessi){
-      const data=(await ghGetFile(PATH_PERMESSI))||{};
-      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
-      await ghSaveFile(PATH_PERMESSI,data,`Pulizia permessi ${anno} - ${utenteCorrente.Title}`);ok++;
+
+    // Pulisce anche la memoria locale se l'utente corrente è tra i selezionati
+    if(selezionate.includes(utenteCorrente.Title)){
+      ferieLocali.clear();
+      permessiLocali={};
+      swLocali.clear();
     }
-    // Smartworking
-    if(delSW){
-      const data=(await ghGetFile(PATH_SW))||{};
-      selezionate.forEach(nome=>{if(data[nome]&&data[nome][anno])delete data[nome][anno];});
-      await ghSaveFile(PATH_SW,data,`Pulizia SW ${anno} - ${utenteCorrente.Title}`);ok++;
-    }
-    // Richieste
-    if(delRichieste){
-      const reqs=(await ghGetFile(PATH_RICHIESTE))||[];
-      const filtrate=reqs.filter(r=>!(selezionate.includes(r.Dipendente)&&String(r.Anno)===anno));
-      await ghSaveFile(PATH_RICHIESTE,filtrate,`Pulizia richieste ${anno} - ${utenteCorrente.Title}`);ok++;
-    }
+
     chiudiModal('overlayPuliziaTeam');
-    toast(`✓ Dati eliminati per ${selezionate.length} risorsa/e (${tipi.join(', ')} ${anno})`,'verde');
-    // Ricarica vista corrente
-    await disegnaCal();aggiornaStatobar();aggiornaSidebar();
+    toast(`✓ ${_puliziaTab==='reset'?'Reset completo':'Pulizia'} eseguita per ${selezionate.length} risorsa/e`,'verde');
+
+    // Ricarica tutto dalla rete per assicurarsi che la UI sia pulita
+    await caricaFerie();
+    await disegnaCal();
+    aggiornaStatobar();aggiornaSidebar();
+
   }catch(e){
     msg.textContent='Errore: '+e.message;
+  }finally{
+    btnConf.disabled=false;btnConf.style.opacity='1';
   }
 }
 
