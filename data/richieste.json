@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": 1773525939635,
+    "Tipo": "permesso",
+    "Dipendente": "ANDREA MASI",
+    "Responsabile": "EMILIANO RONZAT",
+    "Anno": 2026,
+    "Giorni": [
+      "2026-03-23"
+    ],
+    "OrePerGiorno": {
+      "2026-03-23": {
+        "ore": 1,
+        "note": ""
+      }
+    },
+    "Stato": "in_attesa",
+    "DataInvio": "2026-03-14T22:05:39.635Z",
+    "Approvatore": "",
+    "DataRisposta": "",
+    "MotivazioneRifiuto": "",
+    "Letta": false
+  }
+]
