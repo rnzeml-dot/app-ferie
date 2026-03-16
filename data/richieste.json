@@ -45,11 +45,11 @@
       "2026-05-11",
       "2026-05-18"
     ],
-    "Stato": "in_attesa",
+    "Stato": "approvata",
     "NoteRisorsa": "a",
     "DataInvio": "2026-03-14T22:15:57.248Z",
-    "Approvatore": "",
-    "DataRisposta": "",
+    "Approvatore": "EMILIANO RONZAT",
+    "DataRisposta": "2026-03-16T09:06:01.472Z",
     "MotivazioneRifiuto": "",
     "Letta": false
   },
